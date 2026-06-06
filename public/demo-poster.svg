@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1">
+      <stop offset="0" stop-color="#f2eadf" />
+      <stop offset="1" stop-color="#fff8ea" />
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#g)" />
+  <g transform="translate(80,80)">
+    <rect width="1120" height="560" rx="12" fill="#fff" opacity="0.6" />
+    <text x="560" y="280" font-size="36" text-anchor="middle" fill="#111" font-family="system-ui,Arial">
+      Panda Studio — Demo
+    </text>
+  </g>
+</svg>

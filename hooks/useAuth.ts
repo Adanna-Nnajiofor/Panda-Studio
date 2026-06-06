@@ -1,0 +1,11 @@
+"use client";
+
+import { useAuthContext } from '../components/AuthProvider';
+
+export function useAuth() {
+  return useAuthContext();
+}
+
+export { useAuthContext };
+
+export default useAuth;
