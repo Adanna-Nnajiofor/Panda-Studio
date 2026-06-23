@@ -2,24 +2,18 @@ import { isRole, type Role } from "./roles";
 
 function resolveApiBaseUrl(): string {
   if (typeof window !== "undefined") {
-    const base =
-      process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL;
-
-    if (!base) {
-      console.error(
-        " Missing NEXT_PUBLIC_API_BASE_URL in Vercel environment variables",
-      );
-      return "http://localhost:5000/api";
-    }
-
-    return base.replace(/\/$/, "");
+    // In the browser, we use a relative path to leverage Next.js rewrites.
+    // This resolves CORS issues and ensures consistency with the backend origin.
+    return "/api/backend";
   }
 
-  return (
-    process.env.INTERNAL_API_BASE_URL?.replace(/\/$/, "") ||
-    process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ||
+  const base = (
+    process.env.INTERNAL_API_BASE_URL ??
+    process.env.NEXT_PUBLIC_API_BASE_URL ??
     "http://localhost:5000/api"
-  );
+  ).replace(/\/$/, "");
+
+  return base.endsWith("/api") ? base : `${base}/api`;
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();

@@ -20,7 +20,7 @@ export function DashboardShell({
   summary,
   children,
 }: DashboardShellProps) {
-  const { user, logout } = useAuthContext();
+  const { user, logout, isAuthenticated } = useAuthContext();
   const role = (user?.role as Role | undefined) ?? undefined;
   const roleLabel = role ? ROLE_LABELS[role] : "Guest";
 

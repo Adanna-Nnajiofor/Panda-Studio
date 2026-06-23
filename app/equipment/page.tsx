@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import DashboardShell from "../../components/dashboard/DashboardShell";
-import RoleGate from "../../components/dashboard/RoleGate";
 import { apiJson } from "../../lib/api";
 import { EQUIPMENT_CATEGORIES } from "../../lib/studio";
 import { getErrorMessage } from "../../lib/errors";
 import EquipmentActions from "../../components/shopping/EquipmentActions";
+import { useAuthContext } from "../../components/AuthProvider";
+import AuthActionModal from "../../components/AuthActionModal";
 
 type Equipment = {
   _id: string;
@@ -21,24 +22,37 @@ type Equipment = {
 };
 
 export default function EquipmentPage() {
+  const { isAuthenticated } = useAuthContext();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await apiJson<{ equipment: Equipment[] }>("/equipment");
-        setEquipment(data.equipment ?? []);
-      } catch (err: unknown) {
-        setError(getErrorMessage(err, "Failed to load equipment."));
-      } finally {
-        setLoading(false);
-      }
-    };
-    void load();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  const loadEquipment = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiJson<{ equipment: Equipment[] }>("/equipment");
+      setEquipment(data.equipment ?? []);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Failed to load equipment catalog."));
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadEquipment();
+  }, [loadEquipment]);
+
+  const handleProtectedAction = (e: React.MouseEvent) => {
+    if (!isAuthenticated) {
+      e.preventDefault();
+      setIsAuthModalOpen(true);
+    }
+  };
 
   const filtered =
     filter === "all"
@@ -48,17 +62,18 @@ export default function EquipmentPage() {
         );
 
   return (
-    <RoleGate allowedRoles={["client", "admin", "super_admin", "staff"]}>
+    <>
       <DashboardShell
         kicker="Equipment rental"
         title="Film & studio gear"
         summary="Browse cameras, lenses, lighting, audio, drones, and production accessories. Add gear to your booking when scheduling a session."
       >
+        {/* Filters */}
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setFilter("all")}
-            className={`border-2 border-black px-3 py-1 text-xs font-black uppercase ${filter === "all" ? "bg-black text-[#f2eadf]" : "bg-white"}`}
+            className={`border-2 border-black px-3 py-1 text-xs font-black uppercase transition-colors ${filter === "all" ? "bg-black text-[#f2eadf]" : "bg-white hover:bg-gray-50"}`}
           >
             All
           </button>
@@ -67,89 +82,120 @@ export default function EquipmentPage() {
               key={cat}
               type="button"
               onClick={() => setFilter(cat)}
-              className={`border-2 border-black px-3 py-1 text-xs font-black uppercase ${filter === cat ? "bg-black text-[#f2eadf]" : "bg-white"}`}
+              className={`border-2 border-black px-3 py-1 text-xs font-black uppercase transition-colors ${filter === cat ? "bg-black text-[#f2eadf]" : "bg-white hover:bg-gray-50"}`}
             >
               {cat}
             </button>
           ))}
         </div>
 
-        {loading ? <p className="mt-4">Loading equipment...</p> : null}
-        {error ? <p className="mt-4 text-sm text-red-700">{error}</p> : null}
-
-        <section className="mt-6 grid gap-4 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-          {!loading && filtered.length === 0 ? (
-            <p className="text-sm">
-              No equipment listed yet for this category.
-            </p>
-          ) : null}
-          {filtered.map((item) => (
-            <article
-              key={item._id}
-              className="border-4 border-black bg-white shadow-[8px_8px_0_0_#000]"
+        {loading ? (
+          <div className="mt-8 flex flex-col items-center justify-center space-y-4 py-12">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-black border-t-transparent" />
+            <p className="text-sm font-black uppercase tracking-widest">Loading catalog...</p>
+          </div>
+        ) : error ? (
+          <div className="mt-8 border-4 border-black bg-red-50 p-6 shadow-[6px_6px_0_0_#000]">
+            <p className="text-sm font-bold text-red-700">{error}</p>
+            <button 
+              onClick={() => void loadEquipment()}
+              className="mt-4 border-2 border-black bg-white px-4 py-2 text-xs font-black uppercase hover:bg-gray-50"
             >
-              {/* Equipment image */}
-              {item.images && item.images.length > 0 ? (
-                <div className="relative h-40 w-full overflow-hidden border-b-4 border-black sm:h-48">
-                  <Image
-                    src={item.images[0]}
-                    alt={item.name}
-                    fill
-                    sizes="100vw"
-                    unoptimized
-                    className="object-cover"
-                  />
-                  {item.images.length > 1 && (
-                    <span className="absolute bottom-2 right-2 border-2 border-black bg-white px-2 py-0.5 text-xs font-black">
-                      +{item.images.length - 1} more
+              Try Again
+            </button>
+          </div>
+        ) : (
+          <section className="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+            {filtered.length === 0 ? (
+              <div className="col-span-full border-4 border-black bg-white p-12 text-center shadow-[8px_8px_0_0_#000]">
+                <p className="text-lg font-black uppercase">No gear found</p>
+                <p className="mt-2 text-sm text-gray-600">Try adjusting your filters or browse the full catalog.</p>
+              </div>
+            ) : null}
+            {filtered.map((item) => (
+              <article
+                key={item._id}
+                className="group border-4 border-black bg-white transition-transform hover:-translate-y-1 shadow-[8px_8px_0_0_#000]"
+              >
+                {/* Equipment image */}
+                <div className="relative h-48 w-full overflow-hidden border-b-4 border-black bg-[#f2eadf]">
+                  {item.images && item.images.length > 0 ? (
+                    <Image
+                      src={item.images[0]}
+                      alt={item.name}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      unoptimized
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center opacity-40">
+                      <span className="text-5xl">📷</span>
+                    </div>
+                  )}
+                  {item.images && item.images.length > 1 && (
+                    <span className="absolute bottom-2 right-2 border-2 border-black bg-white px-2 py-0.5 text-[0.65rem] font-black uppercase">
+                      +{item.images.length - 1} View
                     </span>
                   )}
                 </div>
-              ) : (
-                <div className="flex h-40 w-full items-center justify-center border-b-4 border-black bg-[#f2eadf] sm:h-48">
-                  <span className="text-4xl">📷</span>
-                </div>
-              )}
 
-              <div className="p-4 sm:p-5">
-                <p className="text-xs font-black uppercase tracking-[0.24em]">
-                  {item.type}
-                </p>
-                <h2 className="mt-2 text-lg sm:text-xl font-black uppercase">
-                  {item.name}
-                </h2>
-                <p className="mt-2 text-sm">
-                  {item.description || "Professional rental unit."}
-                </p>
-                <p className="mt-3 text-xs font-black uppercase tracking-[0.2em]">
-                  ₦{item.hourlyRate.toLocaleString()}/hr · Qty {item.quantity}
-                </p>
-                <div className="mt-4 space-y-3">
-                  <EquipmentActions
-                    equipmentId={item._id}
-                    equipmentName={item.name}
-                    compact
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      href={`/bookings/new?equipmentId=${encodeURIComponent(item._id)}`}
-                      className="border-2 border-black bg-[#f2eadf] px-3 py-2 text-xs font-black uppercase tracking-[0.16em]"
-                    >
-                      Add to booking
-                    </Link>
-                    <Link
-                      href={`/equipment/rent?equipmentId=${encodeURIComponent(item._id)}`}
-                      className="border-2 border-black bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.16em]"
-                    >
-                      Rent gear
-                    </Link>
+                <div className="p-5">
+                  <p className="text-[0.65rem] font-black uppercase tracking-[0.24em] text-gray-500">
+                    {item.type}
+                  </p>
+                  <h2 className="mt-1 text-xl font-black uppercase leading-tight">
+                    {item.name}
+                  </h2>
+                  <p className="mt-2 line-clamp-2 text-sm text-gray-700 min-h-[2.5rem]">
+                    {item.description || "Professional grade studio rental unit."}
+                  </p>
+                  
+                  <div className="mt-4 flex items-center justify-between border-t-2 border-black pt-4">
+                    <p className="text-sm font-black uppercase tracking-widest">
+                      ₦{item.hourlyRate.toLocaleString()}
+                      <span className="ml-1 text-[0.65rem] text-gray-500">/ hr</span>
+                    </p>
+                    <p className="text-[0.65rem] font-black uppercase text-gray-500">
+                      Stock: {item.quantity}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 space-y-4">
+                    <EquipmentActions
+                      equipmentId={item._id}
+                      equipmentName={item.name}
+                      compact
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        href={`/bookings/new?equipmentId=${encodeURIComponent(item._id)}`}
+                        onClick={handleProtectedAction}
+                        className="border-2 border-black bg-[#f2eadf] py-2.5 text-center text-[0.65rem] font-black uppercase tracking-[0.16em] hover:bg-[#e6d8c0] transition-colors"
+                      >
+                        Add to booking
+                      </Link>
+                      <Link
+                        href={`/equipment/rent?equipmentId=${encodeURIComponent(item._id)}`}
+                        onClick={handleProtectedAction}
+                        className="border-2 border-black bg-white py-2.5 text-center text-[0.65rem] font-black uppercase tracking-[0.16em] hover:bg-gray-100 transition-colors"
+                      >
+                        Rent now
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </article>
-          ))}
-        </section>
+              </article>
+            ))}
+          </section>
+        )}
       </DashboardShell>
-    </RoleGate>
+
+      <AuthActionModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        message="Sign in to your Panda Studio account to rent gear, manage your cart, or add items to your production bookings."
+      />
+    </>
   );
 }

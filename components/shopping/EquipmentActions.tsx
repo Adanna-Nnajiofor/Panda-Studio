@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useAuthContext } from "../AuthProvider";
 import { useShopping } from "./ShoppingProvider";
 import { getErrorMessage } from "../../lib/errors";
+import AuthActionModal from "../AuthActionModal";
 
 type EquipmentActionsProps = {
   equipmentId: string;
@@ -17,7 +17,6 @@ export default function EquipmentActions({
   equipmentName,
   compact = false,
 }: EquipmentActionsProps) {
-  const router = useRouter();
   const { isAuthenticated } = useAuthContext();
   const { addToCart, addToWishlist } = useShopping();
 
@@ -28,17 +27,21 @@ export default function EquipmentActions({
     "idle" | "loading" | "done"
   >("idle");
   const [error, setError] = useState<string | null>(null);
+  
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
 
-  const requireAuth = (action: () => Promise<void>) => {
+  const requireAuth = (message: string, action: () => Promise<void>) => {
     if (!isAuthenticated) {
-      router.push(`/login?next=${encodeURIComponent("/equipment")}`);
+      setModalMessage(message);
+      setIsAuthModalOpen(true);
       return;
     }
     void action();
   };
 
   const handleCart = () =>
-    requireAuth(async () => {
+    requireAuth("You need to log in to add items to your cart.", async () => {
       setCartState("loading");
       setError(null);
       try {
@@ -54,7 +57,7 @@ export default function EquipmentActions({
     });
 
   const handleWishlist = () =>
-    requireAuth(async () => {
+    requireAuth("You need to log in to save items to your wishlist.", async () => {
       setWishlistState("loading");
       setError(null);
       try {
@@ -69,39 +72,45 @@ export default function EquipmentActions({
       }
     });
 
-  const btnClass = compact
-    ? "border-2 border-black px-3 py-2 text-xs font-black uppercase tracking-[0.16em] disabled:opacity-50"
-    : "border-2 border-black px-3 py-2 text-xs font-black uppercase tracking-[0.16em] disabled:opacity-50";
+  const btnClass = "border-2 border-black px-3 py-2 text-xs font-black uppercase tracking-[0.16em] disabled:opacity-50 transition-all active:scale-95";
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={handleCart}
-          disabled={cartState === "loading"}
-          className={`${btnClass} bg-black text-[#f2eadf]`}
-        >
-          {cartState === "loading"
-            ? "Adding..."
-            : cartState === "done"
-              ? "Added ✓"
-              : "Add to cart"}
-        </button>
-        <button
-          type="button"
-          onClick={handleWishlist}
-          disabled={wishlistState === "loading"}
-          className={`${btnClass} bg-white`}
-        >
-          {wishlistState === "loading"
-            ? "Saving..."
-            : wishlistState === "done"
-              ? "Saved ♥"
-              : "Wishlist"}
-        </button>
+    <>
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleCart}
+            disabled={cartState === "loading"}
+            className={`${btnClass} bg-black text-[#f2eadf] hover:bg-gray-800`}
+          >
+            {cartState === "loading"
+              ? "Adding..."
+              : cartState === "done"
+                ? "Added ✓"
+                : "Add to cart"}
+          </button>
+          <button
+            type="button"
+            onClick={handleWishlist}
+            disabled={wishlistState === "loading"}
+            className={`${btnClass} bg-white hover:bg-gray-50`}
+          >
+            {wishlistState === "loading"
+              ? "Saving..."
+              : wishlistState === "done"
+                ? "Saved ♥"
+                : "Wishlist"}
+          </button>
+        </div>
+        {error ? <p className="text-xs text-red-700 font-bold">{error}</p> : null}
       </div>
-      {error ? <p className="text-xs text-red-700">{error}</p> : null}
-    </div>
+
+      <AuthActionModal 
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        message={modalMessage}
+      />
+    </>
   );
 }

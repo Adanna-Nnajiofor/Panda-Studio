@@ -1,11 +1,11 @@
 function resolveBackendApiBase(): string {
-  const explicit = process.env.INTERNAL_API_BASE_URL?.replace(/\/$/, "");
-  if (explicit) return explicit;
+  const base = (
+    process.env.INTERNAL_API_BASE_URL ??
+    process.env.NEXT_PUBLIC_API_BASE_URL ??
+    "http://localhost:5000/api"
+  ).replace(/\/$/, "");
 
-  const publicBase = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "");
-  if (publicBase) return publicBase;
-
-  return "http://localhost:5000/api";
+  return base.endsWith("/api") ? base : `${base}/api`;
 }
 
 export async function proxyCatalogGet(path: string) {
