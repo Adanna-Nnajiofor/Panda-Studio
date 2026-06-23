@@ -14,11 +14,14 @@ import { validateOrigin } from "../middleware/csrfMiddleware";
 
 const router = Router();
 
-router.use(protect());
+// Public browse endpoints
+router.get("/", getProjects as any);
+router.get("/:id", getProjectById as any);
 
-router.get("/mine", getMyProjects);
-router.get("/", getProjects);
-router.get("/:id", getProjectById);
+// Auth-only endpoints
+router.get("/mine", protect(), getMyProjects as any);
+
+// Writes (auth + roles)
 
 router.post(
   "/",

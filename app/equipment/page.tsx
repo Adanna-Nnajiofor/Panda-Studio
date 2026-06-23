@@ -4,12 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import DashboardShell from "../../components/dashboard/DashboardShell";
-import { apiJson } from "../../lib/api";
-import { EQUIPMENT_CATEGORIES } from "../../lib/studio";
 import { getErrorMessage } from "../../lib/errors";
 import EquipmentActions from "../../components/shopping/EquipmentActions";
 import { useAuthContext } from "../../components/AuthProvider";
 import AuthActionModal from "../../components/AuthActionModal";
+import { EQUIPMENT_CATEGORIES } from "../../lib/studio";
 
 type Equipment = {
   _id: string;
@@ -20,6 +19,20 @@ type Equipment = {
   quantity: number;
   images?: string[];
 };
+
+async function fetchCatalogEquipments(): Promise<Equipment[]> {
+  const res = await fetch("/api/catalog/equipment", {
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(
+      body?.message ?? `Request failed with status ${res.status}`,
+    );
+  }
+  const data = await res.json();
+  return data.equipment ?? [];
+}
 
 export default function EquipmentPage() {
   const { isAuthenticated } = useAuthContext();
@@ -34,8 +47,8 @@ export default function EquipmentPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiJson<{ equipment: Equipment[] }>("/equipment");
-      setEquipment(data.equipment ?? []);
+      const data = await fetchCatalogEquipments();
+      setEquipment(data);
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to load equipment catalog."));
     } finally {
@@ -92,12 +105,14 @@ export default function EquipmentPage() {
         {loading ? (
           <div className="mt-8 flex flex-col items-center justify-center space-y-4 py-12">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-black border-t-transparent" />
-            <p className="text-sm font-black uppercase tracking-widest">Loading catalog...</p>
+            <p className="text-sm font-black uppercase tracking-widest">
+              Loading catalog...
+            </p>
           </div>
         ) : error ? (
           <div className="mt-8 border-4 border-black bg-red-50 p-6 shadow-[6px_6px_0_0_#000]">
             <p className="text-sm font-bold text-red-700">{error}</p>
-            <button 
+            <button
               onClick={() => void loadEquipment()}
               className="mt-4 border-2 border-black bg-white px-4 py-2 text-xs font-black uppercase hover:bg-gray-50"
             >
@@ -109,7 +124,9 @@ export default function EquipmentPage() {
             {filtered.length === 0 ? (
               <div className="col-span-full border-4 border-black bg-white p-12 text-center shadow-[8px_8px_0_0_#000]">
                 <p className="text-lg font-black uppercase">No gear found</p>
-                <p className="mt-2 text-sm text-gray-600">Try adjusting your filters or browse the full catalog.</p>
+                <p className="mt-2 text-sm text-gray-600">
+                  Try adjusting your filters or browse the full catalog.
+                </p>
               </div>
             ) : null}
             {filtered.map((item) => (
@@ -148,13 +165,16 @@ export default function EquipmentPage() {
                     {item.name}
                   </h2>
                   <p className="mt-2 line-clamp-2 text-sm text-gray-700 min-h-[2.5rem]">
-                    {item.description || "Professional grade studio rental unit."}
+                    {item.description ||
+                      "Professional grade studio rental unit."}
                   </p>
-                  
+
                   <div className="mt-4 flex items-center justify-between border-t-2 border-black pt-4">
                     <p className="text-sm font-black uppercase tracking-widest">
                       ₦{item.hourlyRate.toLocaleString()}
-                      <span className="ml-1 text-[0.65rem] text-gray-500">/ hr</span>
+                      <span className="ml-1 text-[0.65rem] text-gray-500">
+                        / hr
+                      </span>
                     </p>
                     <p className="text-[0.65rem] font-black uppercase text-gray-500">
                       Stock: {item.quantity}

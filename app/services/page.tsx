@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import DashboardShell from "../../components/dashboard/DashboardShell";
-import { apiJson } from "../../lib/api";
 import { getErrorMessage } from "../../lib/errors";
 import { useAuthContext } from "../../components/AuthProvider";
 import AuthActionModal from "../../components/AuthActionModal";
@@ -17,6 +16,20 @@ type Service = {
   slug?: string;
 };
 
+async function fetchCatalogServices(): Promise<Service[]> {
+  const res = await fetch("/api/catalog/services", {
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(
+      body?.message ?? `Request failed with status ${res.status}`,
+    );
+  }
+  const data = await res.json();
+  return data.services ?? [];
+}
+
 export default function ServicesPage() {
   const { isAuthenticated } = useAuthContext();
   const [services, setServices] = useState<Service[]>([]);
@@ -29,8 +42,8 @@ export default function ServicesPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiJson<Service[]>("/services");
-      setServices(Array.isArray(data) ? data : []);
+      const data = await fetchCatalogServices();
+      setServices(data);
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to load studio services."));
     } finally {
@@ -59,12 +72,14 @@ export default function ServicesPage() {
         {loading ? (
           <div className="mt-8 flex flex-col items-center justify-center space-y-4 py-16">
             <div className="h-16 w-16 animate-spin rounded-full border-4 border-black border-t-transparent" />
-            <p className="text-sm font-black uppercase tracking-widest text-gray-400">Opening the vault...</p>
+            <p className="text-sm font-black uppercase tracking-widest text-gray-400">
+              Opening the vault...
+            </p>
           </div>
         ) : error ? (
           <div className="mt-8 border-4 border-black bg-red-50 p-8 shadow-[8px_8px_0_0_#000]">
             <p className="text-sm font-bold text-red-700">{error}</p>
-            <button 
+            <button
               onClick={() => void loadServices()}
               className="mt-6 border-2 border-black bg-white px-6 py-2.5 text-xs font-black uppercase hover:bg-gray-50 transition-all active:scale-95"
             >
@@ -75,8 +90,12 @@ export default function ServicesPage() {
           <section className="grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {!loading && services.length === 0 ? (
               <div className="col-span-full border-4 border-black bg-white p-16 text-center shadow-[10px_10px_0_0_#000]">
-                <p className="text-xl font-black uppercase text-gray-300 tracking-tighter">No active services</p>
-                <p className="mt-2 text-sm text-gray-500 italic">Check back later for updated production packages.</p>
+                <p className="text-xl font-black uppercase text-gray-300 tracking-tighter">
+                  No active services
+                </p>
+                <p className="mt-2 text-sm text-gray-500 italic">
+                  Check back later for updated production packages.
+                </p>
               </div>
             ) : null}
             {services.map((service) => (
@@ -89,20 +108,27 @@ export default function ServicesPage() {
                     {service.name}
                   </h2>
                   <p className="mt-4 text-sm leading-relaxed text-gray-700">
-                    {service.description || "Premium studio service package tailored for world-class production outputs."}
+                    {service.description ||
+                      "Premium studio service package tailored for world-class production outputs."}
                   </p>
                 </div>
-                
+
                 <div className="mt-8 flex items-center justify-between border-t-2 border-black pt-6">
                   <div className="space-y-0.5">
-                    <p className="text-[0.6rem] font-black uppercase tracking-[0.2em] text-gray-400">Base Price</p>
+                    <p className="text-[0.6rem] font-black uppercase tracking-[0.2em] text-gray-400">
+                      Base Price
+                    </p>
                     <p className="text-xl font-black">
                       ₦{service.basePrice.toLocaleString()}
                     </p>
                   </div>
                   <div className="text-right space-y-0.5">
-                    <p className="text-[0.6rem] font-black uppercase tracking-[0.2em] text-gray-400">Duration</p>
-                    <p className="text-xl font-black">{service.durationInHours}h</p>
+                    <p className="text-[0.6rem] font-black uppercase tracking-[0.2em] text-gray-400">
+                      Duration
+                    </p>
+                    <p className="text-xl font-black">
+                      {service.durationInHours}h
+                    </p>
                   </div>
                 </div>
 
