@@ -2,8 +2,16 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ROLE_LABELS, ROLE_HOME_PATH, type Role } from "../lib/roles";
+import { apiJson } from "../lib/api";
+import { getErrorMessage } from "../lib/errors";
+import {
+  equipmentRentPath,
+  loginNextPath,
+  registerNextPath,
+} from "../lib/catalog";
+import type { EquipmentPreview, ServicePreview } from "../lib/shopping";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HeroDemoModal from "@/components/HeroDemoModal";
@@ -86,6 +94,95 @@ const roleCards: { role: Role; blurb: string; outcome: string }[] = [
 
 export default function HomePage() {
   const [showDemo, setShowDemo] = useState(false);
+  const [equipment, setEquipment] = useState<EquipmentPreview[]>([]);
+  const [services, setServices] = useState<ServicePreview[]>([]);
+  const [equipmentLoading, setEquipmentLoading] = useState(true);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [equipmentError, setEquipmentError] = useState<string | null>(null);
+  const [servicesError, setServicesError] = useState<string | null>(null);
+
+  const [showCatalog, setShowCatalog] = useState(false);
+  const [reservation, setReservation] = useState<
+    | {
+        kind: "equipment";
+        id: string;
+        name: string;
+        label: string;
+        next: string;
+      }
+    | {
+        kind: "service";
+        id: string;
+        name: string;
+        label: string;
+        next: string;
+      }
+    | null
+  >(null);
+
+  const visibleEquipment = showCatalog ? equipment : equipment.slice(0, 3);
+  const visibleServices = showCatalog ? services : services.slice(0, 3);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const [equipmentResult, servicesResult] = await Promise.allSettled([
+        apiJson<{ equipment: EquipmentPreview[] }>("/equipment"),
+        apiJson<ServicePreview[]>("/services"),
+      ]);
+
+      if (equipmentResult.status === "fulfilled") {
+        setEquipment(equipmentResult.value.equipment ?? []);
+      } else {
+        setEquipmentError(
+          getErrorMessage(
+            equipmentResult.reason,
+            "Failed to load featured equipment.",
+          ),
+        );
+      }
+
+      if (servicesResult.status === "fulfilled") {
+        const payload = servicesResult.value;
+        setServices(Array.isArray(payload) ? payload : []);
+      } else {
+        setServicesError(
+          getErrorMessage(
+            servicesResult.reason,
+            "Failed to load featured services.",
+          ),
+        );
+      }
+
+      setEquipmentLoading(false);
+      setServicesLoading(false);
+    };
+
+    void loadData();
+  }, []);
+
+  const toggleCatalog = () => setShowCatalog((current) => !current);
+
+  const setReserveTarget = (
+    kind: "equipment" | "service",
+    item: EquipmentPreview | ServicePreview,
+  ) => {
+    const next =
+      kind === "equipment"
+        ? equipmentRentPath(item._id)
+        : `/bookings/new?serviceId=${encodeURIComponent(item._id)}`;
+
+    setReservation({
+      kind,
+      id: item._id,
+      name: item.name,
+      label:
+        kind === "equipment"
+          ? ((item as EquipmentPreview).type ?? "Gear")
+          : "Studio service",
+      next,
+    });
+  };
+
   return (
     <>
       <Header />
@@ -246,6 +343,272 @@ export default function HomePage() {
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* EQUIPMENT + SERVICES PREVIEW */}
+        <section className="relative overflow-hidden px-4 sm:px-6 py-16 mx-auto max-w-6xl">
+          <div className="absolute -right-20 top-10 h-64 w-64 rounded-full bg-[#f4d98f]/30 blur-3xl" />
+          <div className="absolute left-0 top-24 h-48 w-48 rounded-full bg-black/5 blur-3xl" />
+
+          <div className="relative grid gap-8 lg:grid-cols-[1.3fr_0.95fr]">
+            <div className="rounded-4xl border-4 border-black bg-[#fef7ec] p-8 shadow-[14px_14px_0_0_#000]">
+              <div className="flex flex-col gap-4">
+                <div className="space-y-3">
+                  <p className="text-xs font-black uppercase tracking-[0.4em] text-[#7d673d]">
+                    Studio collection
+                  </p>
+                  <h2 className="text-4xl font-black uppercase leading-tight">
+                    A hand-picked roster of kit and packages
+                  </h2>
+                  <p className="max-w-3xl text-sm opacity-85">
+                    Explore the studio roster in a premium editorial layout. Tap
+                    any item to see a tailored login/register reserve flow.
+                  </p>
+                </div>
+
+                {equipmentError ? (
+                  <div className="rounded-3xl border border-red-700 bg-[#ffe2e2] p-4 text-sm text-red-900">
+                    {equipmentError}
+                  </div>
+                ) : null}
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="relative overflow-hidden rounded-[1.75rem] border-4 border-black bg-black text-white p-6 shadow-[8px_8px_0_0_#000]">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_40%)]" />
+                    <div className="relative z-10">
+                      <p className="text-xs font-black uppercase tracking-[0.3em] text-[#d6caa9]">
+                        Gear spotlight
+                      </p>
+                      <h3 className="mt-4 text-2xl font-black uppercase">
+                        Equipment picks
+                      </h3>
+                      <div className="mt-6 space-y-4">
+                        {visibleEquipment.map((item) => (
+                          <div
+                            key={item._id}
+                            className="overflow-hidden rounded-3xl border border-white/10 bg-white/10"
+                          >
+                            {item.images?.[0] ? (
+                              <div className="relative h-28 w-full border-b border-white/10">
+                                <Image
+                                  src={item.images[0]}
+                                  alt={item.name}
+                                  fill
+                                  unoptimized
+                                  sizes="200px"
+                                  className="object-cover"
+                                />
+                              </div>
+                            ) : null}
+                            <div className="p-4">
+                              <p className="text-xs uppercase tracking-[0.18em] opacity-70">
+                                {item.type}
+                              </p>
+                              <p className="mt-2 text-lg font-black uppercase">
+                                {item.name}
+                              </p>
+                              <p className="mt-1 text-sm opacity-80">
+                                ₦{item.hourlyRate.toLocaleString()}/hr
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setReserveTarget("equipment", item)
+                                }
+                                className="mt-3 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] hover:bg-white hover:text-black"
+                              >
+                                Rent this gear
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="overflow-hidden rounded-[1.75rem] border-4 border-black bg-white p-6 shadow-[8px_8px_0_0_#000]">
+                    <p className="text-xs font-black uppercase tracking-[0.3em] text-[#7d673d]">
+                      Service spotlight
+                    </p>
+                    <h3 className="mt-4 text-2xl font-black uppercase">
+                      Studio packages
+                    </h3>
+                    <div className="mt-6 space-y-4">
+                      {visibleServices.map((item) => (
+                        <div
+                          key={item._id}
+                          className="rounded-3xl border border-black/10 bg-[#f4ecdb] p-4"
+                        >
+                          <p className="text-xs uppercase tracking-[0.18em] opacity-70">
+                            {item.durationInHours}h session
+                          </p>
+                          <p className="mt-2 text-lg font-black uppercase">
+                            {item.name}
+                          </p>
+                          <p className="mt-1 text-sm opacity-80">
+                            ₦{item.basePrice.toLocaleString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {reservation ? (
+                <div className="overflow-hidden rounded-[2rem] border-4 border-black bg-[#1b1a18] p-6 text-white shadow-[14px_14px_0_0_#000]">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.4em] text-[#d9c7a0]">
+                        Ready to reserve
+                      </p>
+                      <h3 className="mt-3 text-2xl font-black uppercase leading-tight">
+                        {reservation.kind === "equipment"
+                          ? "Rent this kit"
+                          : "Book this package"}
+                      </h3>
+                      <p className="mt-2 text-sm opacity-85">
+                        {reservation.label}: {reservation.name}
+                      </p>
+                    </div>
+                    <div className="rounded-3xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#d9c7a0]">
+                      Selected
+                    </div>
+                  </div>
+
+                  <div className="mt-6 grid gap-3">
+                    <Link
+                      href={loginNextPath(reservation.next)}
+                      className="rounded-full border-2 border-white bg-white/10 px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-white transition hover:bg-white hover:text-black"
+                    >
+                      Login to rent
+                    </Link>
+                    <Link
+                      href={registerNextPath(reservation.next)}
+                      className="rounded-full border-2 border-white bg-[#f2eadf] px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-black transition hover:bg-white"
+                    >
+                      Register & rent
+                    </Link>
+                  </div>
+
+                  <div className="mt-6 rounded-[1.5rem] bg-[#000000]/20 p-4 text-sm text-[#d4cab8]">
+                    Create a studio profile and lock this item inside your
+                    booking funnel. The selected gear or package stays ready
+                    until you sign in.
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-[2rem] border-4 border-black bg-[#f7f0e2] p-6 shadow-[14px_14px_0_0_#000]">
+                  <p className="text-xs font-black uppercase tracking-[0.4em] text-[#7d673d]">
+                    Start your booking flow
+                  </p>
+                  <h3 className="mt-3 text-2xl font-black uppercase leading-tight">
+                    Tap any item to reveal the reserve experience
+                  </h3>
+                  <p className="mt-4 text-sm opacity-80">
+                    When you choose a piece of equipment or a service package,
+                    we’ll show the best way to sign in or register and keep the
+                    item reserved for you.
+                  </p>
+                </div>
+              )}
+
+              <div className="rounded-[2rem] border-4 border-black bg-[#f7f0e2] p-6 shadow-[14px_14px_0_0_#000]">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.4em] text-[#7d673d]">
+                        Catalog preview
+                      </p>
+                      <h3 className="text-2xl font-black uppercase">
+                        Top studio picks
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={toggleCatalog}
+                      className="rounded-full border-2 border-black bg-black px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#f2eadf]"
+                    >
+                      {showCatalog ? "Show less" : "Show more"}
+                    </button>
+                  </div>
+
+                  <div className="grid gap-4">
+                    <div className="grid gap-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase tracking-[0.2em] text-[#7d673d]">
+                          Equipment
+                        </span>
+                        <span className="rounded-full bg-black px-3 py-1 text-[0.65rem] font-black uppercase text-[#f2eadf]">
+                          {visibleEquipment.length} items
+                        </span>
+                      </div>
+                      {equipmentLoading ? (
+                        <p className="text-sm">Loading equipment…</p>
+                      ) : equipmentError ? (
+                        <p className="text-sm text-red-800">{equipmentError}</p>
+                      ) : visibleEquipment.length === 0 ? (
+                        <p className="text-sm">No gear available yet.</p>
+                      ) : (
+                        visibleEquipment.map((item) => (
+                          <button
+                            key={item._id}
+                            type="button"
+                            onClick={() => setReserveTarget("equipment", item)}
+                            className="rounded-[1.25rem] border border-black bg-white px-4 py-3 text-left text-sm font-black uppercase tracking-[0.12em] shadow-[6px_6px_0_0_#000] transition hover:bg-[#f2eadf]"
+                          >
+                            <span>{item.name}</span>
+                            <span className="block text-xs font-normal uppercase tracking-[0.2em] text-[#6b5840]">
+                              ₦{item.hourlyRate.toLocaleString()}/hr ·{" "}
+                              {item.type}
+                            </span>
+                            <span className="mt-2 block text-[0.65rem] font-black uppercase tracking-[0.2em] text-[#7d673d]">
+                              Tap to rent — login required
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+
+                    <div className="grid gap-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase tracking-[0.2em] text-[#7d673d]">
+                          Services
+                        </span>
+                        <span className="rounded-full bg-black px-3 py-1 text-[0.65rem] font-black uppercase text-[#f2eadf]">
+                          {visibleServices.length} items
+                        </span>
+                      </div>
+                      {servicesLoading ? (
+                        <p className="text-sm">Loading services…</p>
+                      ) : servicesError ? (
+                        <p className="text-sm text-red-800">{servicesError}</p>
+                      ) : visibleServices.length === 0 ? (
+                        <p className="text-sm">No packages available.</p>
+                      ) : (
+                        visibleServices.map((item) => (
+                          <button
+                            key={item._id}
+                            type="button"
+                            onClick={() => setReserveTarget("service", item)}
+                            className="rounded-[1.25rem] border border-black bg-white px-4 py-3 text-left text-sm font-black uppercase tracking-[0.12em] shadow-[6px_6px_0_0_#000] transition hover:bg-[#f2eadf]"
+                          >
+                            <span>{item.name}</span>
+                            <span className="block text-xs font-normal uppercase tracking-[0.2em] text-[#6b5840]">
+                              ₦{item.basePrice.toLocaleString()} ·{" "}
+                              {item.durationInHours}h
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 

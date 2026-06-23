@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthContext } from "./AuthProvider";
+import ShoppingHeaderIcons from "./shopping/ShoppingHeaderIcons";
 
 const navigation = [
   { href: "/services", label: "Services" },
   { href: "/equipment", label: "Equipment" },
   { href: "/bookings", label: "My bookings" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
 ];
 
 export default function Header() {
@@ -87,6 +90,7 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <ShoppingHeaderIcons />
           {isAuthenticated ? (
             <button
               type="button"

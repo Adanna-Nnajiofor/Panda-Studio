@@ -68,14 +68,14 @@ export default function DiscoverPage() {
         ) : error ? (
           <p className="text-sm text-red-700">{error}</p>
         ) : null}
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <section className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((c) => (
             <article
               key={c._id}
               className="border-4 border-black bg-white shadow-[8px_8px_0_0_#000]"
             >
-              <div className="flex items-center gap-4 border-b-4 border-black p-4">
-                <div className="h-14 w-14 shrink-0 overflow-hidden border-2 border-black bg-[#f2eadf] relative">
+              <div className="flex items-center gap-3 border-b-4 border-black p-3 sm:gap-4 sm:p-4">
+                <div className="relative h-12 w-12 shrink-0 overflow-hidden border-2 border-black bg-[#f2eadf] sm:h-14 sm:w-14">
                   {c.avatar ? (
                     <Image
                       src={c.avatar}
@@ -92,7 +92,7 @@ export default function DiscoverPage() {
                 </div>
                 <div>
                   <h2 className="font-black uppercase">{c.fullName}</h2>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-[11px] text-gray-600">
                     {c.position ?? c.department ?? "Creative"}
                   </p>
                   <span
@@ -102,7 +102,7 @@ export default function DiscoverPage() {
                   </span>
                 </div>
               </div>
-              <div className="p-4">
+              <div className="p-3 sm:p-4">
                 {c.bio ? <p className="text-sm line-clamp-2">{c.bio}</p> : null}
                 {c.portfolio?.specialties?.length ? (
                   <div className="mt-2 flex flex-wrap gap-1">

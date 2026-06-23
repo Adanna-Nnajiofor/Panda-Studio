@@ -18,16 +18,18 @@ export default function CrewPage() {
         title="Find work, mark availability, stay booked"
         summary="Crew can scan the marketplace, accept assignments, and keep the team updated without leaving the dashboard."
       >
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {tiles.map((item) => (
             <article
               key={item.label}
               className="border-4 border-black bg-[#dff7ec] p-5 shadow-[8px_8px_0_0_#000]"
             >
-              <p className="text-xs font-black uppercase tracking-[0.24em]">
+              <p className="text-[11px] font-black uppercase tracking-[0.24em]">
                 {item.label}
               </p>
-              <p className="mt-3 text-4xl font-black">{item.value}</p>
+              <p className="mt-2 text-3xl sm:text-4xl font-black">
+                {item.value}
+              </p>
             </article>
           ))}
         </section>

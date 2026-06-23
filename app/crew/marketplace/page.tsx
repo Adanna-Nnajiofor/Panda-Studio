@@ -77,7 +77,9 @@ export default function CrewMarketplacePage() {
             onSubmit={submitHire}
             className="mb-6 border-4 border-black bg-[#fef1cf] p-5 shadow-[8px_8px_0_0_#000]"
           >
-            <h2 className="text-lg font-black uppercase">Hire request</h2>
+            <h2 className="text-base sm:text-lg font-black uppercase">
+              Hire request
+            </h2>
             <textarea
               required
               minLength={10}
@@ -94,7 +96,7 @@ export default function CrewMarketplacePage() {
               onChange={(e) => setProposedRate(e.target.value)}
               className="mt-2 w-full border-2 border-black px-3 py-2 text-sm"
             />
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <button
                 type="submit"
                 disabled={submitting}
@@ -113,7 +115,7 @@ export default function CrewMarketplacePage() {
           </form>
         ) : null}
 
-        <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <section className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {crew.map((member) => {
             const id = String(member._id ?? member.id ?? "");
             const name = member.fullName ?? member.name ?? "Crew member";

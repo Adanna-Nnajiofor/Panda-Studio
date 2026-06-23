@@ -18,13 +18,17 @@ export interface UploadOptions {
 
 export const uploadToCloudinary = (
   buffer: Buffer,
-  mimetype: string,
+  mimetype?: string,
   options: UploadOptions = {},
 ): Promise<UploadResult> => {
+  if (!buffer) {
+    return Promise.reject(new Error("Upload failed: buffer is empty"));
+  }
+
   if (!isCloudinaryConfigured()) {
     return Promise.reject(
       new Error(
-        "Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.",
+        "Cloudinary is not configured. Check CLOUDINARY env variables.",
       ),
     );
   }
@@ -38,9 +42,13 @@ export const uploadToCloudinary = (
         overwrite: options.overwrite ?? false,
       },
       (error, result) => {
-        if (error || !result) {
-          reject(error ?? new Error("Cloudinary upload returned no result"));
-          return;
+        if (error) {
+          console.error("Cloudinary upload error:", error);
+          return reject(error);
+        }
+
+        if (!result) {
+          return reject(new Error("Cloudinary returned empty result"));
         }
 
         resolve({
@@ -53,11 +61,25 @@ export const uploadToCloudinary = (
       },
     );
 
-    Readable.from(buffer).pipe(uploadStream);
+    const stream = Readable.from(buffer);
+
+    stream.on("error", (err) => {
+      console.error("Readable stream error:", err);
+      reject(err);
+    });
+
+    stream.pipe(uploadStream);
   });
 };
 
 export const deleteFromCloudinary = async (publicId: string): Promise<void> => {
+  if (!publicId) return;
+
   if (!isCloudinaryConfigured()) return;
-  await cloudinary.uploader.destroy(publicId);
+
+  try {
+    await cloudinary.uploader.destroy(publicId);
+  } catch (err) {
+    console.error("Cloudinary delete error:", err);
+  }
 };

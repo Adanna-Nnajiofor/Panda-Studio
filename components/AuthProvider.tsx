@@ -49,8 +49,9 @@ export type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 function buildAuthUrl(action: "login" | "register") {
-  // FIX: now points to backend (NOT Next.js frontend)
-  return `${API_BASE_URL}/auth/${action}`;
+  // Use Next.js rewrite-based proxy prefixing done inside apiFetch.
+  // apiFetch will prepend API_BASE_URL to absolute/relative paths.
+  return `/auth/${action}`;
 }
 
 function normalizeRole(role?: string | null): Role | string | undefined {

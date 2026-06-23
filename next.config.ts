@@ -1,9 +1,28 @@
 import type { NextConfig } from "next";
 
+function resolveBackendRoot(): string {
+  const apiBase = (
+    process.env.INTERNAL_API_BASE_URL ??
+    process.env.NEXT_PUBLIC_API_BASE_URL ??
+    "http://localhost:5000/api"
+  ).replace(/\/$/, "");
+
+  return apiBase.endsWith("/api") ? apiBase.slice(0, -4) : apiBase;
+}
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  async rewrites() {
+    const backendRoot = resolveBackendRoot();
+
+    return [
+      {
+        source: "/api/backend/:path*",
+        destination: `${backendRoot}/api/:path*`,
+      },
+    ];
+  },
   images: {
-    // Allow common external hosts used for avatars and images; add more as needed.
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "res.cloudinary.com" },

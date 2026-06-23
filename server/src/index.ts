@@ -27,6 +27,10 @@ import referralRoutes from "./routes/referralRoutes";
 import blogRoutes from "./routes/blogRoutes";
 import analyticsRoutes from "./routes/analyticsRoutes";
 import aiRoutes from "./routes/aiRoutes";
+import searchRoutes from "./routes/searchRoutes";
+import cartRoutes from "./routes/cartRoutes";
+import wishlistRoutes from "./routes/wishlistRoutes";
+import checkoutRoutes from "./routes/checkoutRoutes";
 
 import { listCrewDirectory } from "./controllers/crewDirectoryController";
 import { protect } from "./middleware/authMiddleware";
@@ -46,25 +50,38 @@ connectDB();
 connectRedis();
 
 /* -----------------------------
-    CORS (FIXED & SIMPLE)
+    CORS — reads CLIENT_ORIGIN from .env
 ------------------------------ */
-const allowedOrigins = [
-  "http://localhost:3000",
-  "https://panda-studio-beta.vercel.app",
-];
+const parseAllowedOrigins = (): Set<string> => {
+  const origins = new Set([
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://panda-studio-beta.vercel.app",
+  ]);
+
+  const raw = process.env.CLIENT_ORIGIN ?? "";
+  for (const entry of raw.split(",")) {
+    const trimmed = entry.trim().replace(/\/$/, "");
+    if (trimmed) origins.add(trimmed);
+  }
+
+  return origins;
+};
+
+const allowedOrigins = parseAllowedOrigins();
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // allow Postman / server-to-server
       if (!origin) return callback(null, true);
 
       const normalizedOrigin = origin.replace(/\/$/, "");
 
-      if (allowedOrigins.includes(normalizedOrigin)) {
+      if (allowedOrigins.has(normalizedOrigin)) {
         return callback(null, true);
       }
 
+      logger.warn("CORS blocked origin", { origin: normalizedOrigin });
       return callback(null, false);
     },
     credentials: true,
@@ -108,8 +125,13 @@ app.use("/api/referrals", referralRoutes);
 app.use("/api/blog", blogRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/search", searchRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/checkout", checkoutRoutes);
 
 // protected route
+
 app.get("/api/users/crew", protect(), listCrewDirectory);
 
 // health check

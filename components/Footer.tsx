@@ -27,10 +27,7 @@ export default function Footer() {
           <Link href="/demo" className="hover:text-slate-900">
             Request demo
           </Link>
-          <Link
-            href="mailto:hello@panda.studio"
-            className="hover:text-slate-900"
-          >
+          <Link href="/contact" className="hover:text-slate-900">
             Contact
           </Link>
         </div>

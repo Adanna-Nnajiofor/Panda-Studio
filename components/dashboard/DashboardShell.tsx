@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useAuthContext } from "../AuthProvider";
 import { ROLE_LABELS, roleHomePath, type Role } from "../../lib/roles";
 import RoleNav from "./RoleNav";
+import ShoppingHeaderIcons from "../shopping/ShoppingHeaderIcons";
 
 type DashboardShellProps = {
   title: string;
@@ -40,6 +41,8 @@ export function DashboardShell({
               ) : null}
             </div>
 
+            <div className="flex flex-col items-end gap-3">
+              <ShoppingHeaderIcons variant="dark" />
             <div className="border-4 border-black bg-black p-4 text-[#f2eadf] shadow-[6px_6px_0_0_#000]">
               <p className="text-xs font-black uppercase tracking-[0.2em]">
                 Signed in as
@@ -48,7 +51,7 @@ export function DashboardShell({
                 {user?.name ?? user?.email ?? "Team member"}
               </p>
               <p className="text-sm">{roleLabel}</p>
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex sm:flex-row gap-2 flex-col">
                 <Link
                   href={role ? roleHomePath(role) : "/"}
                   className="border-2 border-[#f2eadf] bg-[#f2eadf] px-3 py-2 text-xs font-black uppercase tracking-[0.2em] text-black"
@@ -63,6 +66,7 @@ export function DashboardShell({
                   Logout
                 </button>
               </div>
+            </div>
             </div>
           </div>
         </header>

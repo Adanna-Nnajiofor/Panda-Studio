@@ -3,8 +3,10 @@ import mongoose, { Schema, Document, Types } from "mongoose";
 export interface IEquipment extends Document {
   name: string;
   type: string;
+  brand?: string;
   description?: string;
   hourlyRate: number;
+  dailyRate?: number;
   quantity: number;
   isActive: boolean;
   images?: string[];

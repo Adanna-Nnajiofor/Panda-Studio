@@ -37,6 +37,21 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["client", "admin", "super_admin", "staff"],
   },
   {
+    href: "/cart",
+    label: "Cart",
+    roles: ["client", "admin", "super_admin", "staff"],
+  },
+  {
+    href: "/wishlist",
+    label: "Wishlist",
+    roles: ["client", "admin", "super_admin", "staff"],
+  },
+  {
+    href: "/checkout",
+    label: "Checkout",
+    roles: ["client", "admin", "super_admin"],
+  },
+  {
     href: "/equipment/rentals",
     label: "My Rentals",
     roles: ["client", "admin", "super_admin"],
