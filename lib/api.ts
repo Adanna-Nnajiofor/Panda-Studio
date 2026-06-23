@@ -1,28 +1,25 @@
 import { isRole, type Role } from "./roles";
 
 function resolveApiBaseUrl(): string {
-  // Browser: prefer explicit env (works on Vercel), otherwise fall back to rewrite prefix.
   if (typeof window !== "undefined") {
-    const publicBase = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "");
-    if (publicBase) return publicBase;
+    const base =
+      process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL;
 
-    const explicit = process.env.INTERNAL_API_BASE_URL?.replace(/\/$/, "");
-    if (explicit) return explicit;
+    if (!base) {
+      console.error(
+        " Missing NEXT_PUBLIC_API_BASE_URL in Vercel environment variables",
+      );
+      return "http://localhost:5000/api";
+    }
 
-    // Must match next.config.ts rewrite source prefix.
-    return "/api/backend";
+    return base.replace(/\/$/, "");
   }
 
-  const explicit = process.env.INTERNAL_API_BASE_URL?.replace(/\/$/, "");
-  if (explicit) return explicit;
-
-  const publicBase = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "");
-  if (publicBase) return publicBase;
-
-  const root = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
-  if (root) return `${root}/api`;
-
-  return "http://localhost:5000/api";
+  return (
+    process.env.INTERNAL_API_BASE_URL?.replace(/\/$/, "") ||
+    process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ||
+    "http://localhost:5000/api"
+  );
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
@@ -259,19 +256,32 @@ export async function apiUpload<T>(
     method: "POST",
     body: formData,
   });
+
   const text = await response.text();
-  const parsed = text ? (JSON.parse(text) as T) : ({} as T);
+  let parsed: T | null = null;
+
+  if (text) {
+    try {
+      parsed = JSON.parse(text) as T;
+    } catch {
+      parsed = null;
+    }
+  }
+
   if (!response.ok) {
     const message =
-      typeof parsed === "object" &&
       parsed &&
-      "message" in parsed &&
+      typeof parsed === "object" &&
+      "message" in (parsed as Record<string, unknown>) &&
       typeof (parsed as Record<string, unknown>).message === "string"
         ? ((parsed as Record<string, unknown>).message as string)
-        : `Upload failed with status ${response.status}`;
+        : text
+          ? `Upload failed with status ${response.status}: ${text}`
+          : `Upload failed with status ${response.status}`;
     throw new Error(message);
   }
-  return parsed;
+
+  return parsed ?? ({} as T);
 }
 
 export async function apiJson<T>(
@@ -280,18 +290,28 @@ export async function apiJson<T>(
 ): Promise<T> {
   const response = await apiFetch(input, init);
   const text = await response.text();
-  const parsed = text ? (JSON.parse(text) as T) : ({} as T);
+
+  let parsed: T | null = null;
+  if (text) {
+    try {
+      parsed = JSON.parse(text) as T;
+    } catch {
+      parsed = null;
+    }
+  }
 
   if (!response.ok) {
     const message =
-      typeof parsed === "object" &&
       parsed &&
-      "message" in parsed &&
+      typeof parsed === "object" &&
+      "message" in (parsed as Record<string, unknown>) &&
       typeof (parsed as Record<string, unknown>).message === "string"
         ? ((parsed as Record<string, unknown>).message as string)
-        : `Request failed with status ${response.status}`;
+        : text
+          ? `Request failed with status ${response.status}: ${text}`
+          : `Request failed with status ${response.status}`;
     throw new Error(message);
   }
 
-  return parsed;
+  return parsed ?? ({} as T);
 }
