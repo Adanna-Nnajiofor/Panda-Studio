@@ -1,9 +1,15 @@
 import { isRole, type Role } from "./roles";
 
 function resolveApiBaseUrl(): string {
-  // Browser uses same-origin proxy (see next.config.ts rewrites → backend URL from env)
-  // IMPORTANT: this must be exactly the proxy prefix (no backend root duplication).
+  // Browser: prefer explicit env (works on Vercel), otherwise fall back to rewrite prefix.
   if (typeof window !== "undefined") {
+    const publicBase = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "");
+    if (publicBase) return publicBase;
+
+    const explicit = process.env.INTERNAL_API_BASE_URL?.replace(/\/$/, "");
+    if (explicit) return explicit;
+
+    // Must match next.config.ts rewrite source prefix.
     return "/api/backend";
   }
 
