@@ -1,11 +1,27 @@
-function resolveBackendApiBase(): string {
-  const base = (
-    process.env.INTERNAL_API_BASE_URL ??
+function readApiBaseEnv(): string | undefined {
+  return (
     process.env.NEXT_PUBLIC_API_BASE_URL ??
-    "http://localhost:5000/api"
-  ).replace(/\/$/, "");
+    process.env.INTERNAL_API_BASE_URL ??
+    process.env.BACKEND_URL ??
+    process.env.NEXT_PUBLIC_BACKEND_URL
+  )?.trim();
+}
 
-  return base.endsWith("/api") ? base : `${base}/api`;
+function normalizeApiBase(base: string | undefined): string {
+  const trimmed = base?.replace(/\/$/, "");
+  if (!trimmed) return "";
+  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+}
+
+function resolveBackendApiBase(): string {
+  const configured = normalizeApiBase(readApiBaseEnv());
+  if (configured) return configured;
+
+  if (process.env.NODE_ENV === "production") {
+    return "https://panda-studio.onrender.com/api";
+  }
+
+  return "http://localhost:5000/api";
 }
 
 export async function proxyCatalogGet(path: string) {

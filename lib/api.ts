@@ -1,5 +1,20 @@
 import { isRole, type Role } from "./roles";
 
+function readApiBaseEnv(): string | undefined {
+  return (
+    process.env.NEXT_PUBLIC_API_BASE_URL ??
+    process.env.INTERNAL_API_BASE_URL ??
+    process.env.BACKEND_URL ??
+    process.env.NEXT_PUBLIC_BACKEND_URL
+  )?.trim();
+}
+
+function normalizeApiBase(base: string | undefined): string {
+  const trimmed = base?.replace(/\/$/, "");
+  if (!trimmed) return "";
+  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+}
+
 function resolveApiBaseUrl(): string {
   if (typeof window !== "undefined") {
     // In the browser, we use a relative path to leverage Next.js rewrites.
@@ -7,13 +22,14 @@ function resolveApiBaseUrl(): string {
     return "/api/backend";
   }
 
-  const base = (
-    process.env.INTERNAL_API_BASE_URL ??
-    process.env.NEXT_PUBLIC_API_BASE_URL ??
-    "http://localhost:5000/api"
-  ).replace(/\/$/, "");
+  const configured = normalizeApiBase(readApiBaseEnv());
+  if (configured) return configured;
 
-  return base.endsWith("/api") ? base : `${base}/api`;
+  if (process.env.NODE_ENV === "production") {
+    return "https://panda-studio.onrender.com/api";
+  }
+
+  return "http://localhost:5000/api";
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();

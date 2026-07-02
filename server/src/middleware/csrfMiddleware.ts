@@ -8,6 +8,10 @@ const FALLBACK_ORIGINS = [
   "https://panda-studio-beta.vercel.app",
 ];
 
+const isVercelOrigin = (origin: string): boolean => {
+  return /^(https:\/\/)[a-z0-9-]+(\.vercel\.app|\.vercel\.dev)$/i.test(origin);
+};
+
 const parseOrigin = (value: string): string | null => {
   try {
     const { protocol, host } = new URL(value);
@@ -61,7 +65,7 @@ export const validateOrigin = (
 
   const { origin } = req.headers;
 
-  if (!origin || !allowedOrigins.has(origin)) {
+  if (!origin || (!allowedOrigins.has(origin) && !isVercelOrigin(origin))) {
     return res.status(403).json({
       success: false,
       message: "Forbidden: invalid origin",

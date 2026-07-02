@@ -68,6 +68,18 @@ const parseAllowedOrigins = (): Set<string> => {
   return origins;
 };
 
+const isAllowedOrigin = (origin: string): boolean => {
+  const normalizedOrigin = origin.replace(/\/$/, "");
+  if (!normalizedOrigin) return false;
+
+  const allowedOrigins = parseAllowedOrigins();
+  if (allowedOrigins.has(normalizedOrigin)) return true;
+
+  return /^(https:\/\/)[a-z0-9-]+(\.vercel\.app|\.vercel\.dev)$/i.test(
+    normalizedOrigin,
+  );
+};
+
 const allowedOrigins = parseAllowedOrigins();
 
 app.use(
@@ -77,7 +89,7 @@ app.use(
 
       const normalizedOrigin = origin.replace(/\/$/, "");
 
-      if (allowedOrigins.has(normalizedOrigin)) {
+      if (isAllowedOrigin(normalizedOrigin)) {
         return callback(null, true);
       }
 

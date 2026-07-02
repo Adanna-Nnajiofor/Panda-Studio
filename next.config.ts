@@ -1,13 +1,25 @@
 import type { NextConfig } from "next";
 
-function resolveBackendRoot(): string {
-  const apiBase = (
-    process.env.INTERNAL_API_BASE_URL ??
+function readApiBaseEnv(): string | undefined {
+  return (
     process.env.NEXT_PUBLIC_API_BASE_URL ??
-    "http://localhost:5000/api"
-  ).replace(/\/$/, "");
+    process.env.INTERNAL_API_BASE_URL ??
+    process.env.BACKEND_URL ??
+    process.env.NEXT_PUBLIC_BACKEND_URL
+  )?.trim();
+}
 
-  return apiBase.endsWith("/api") ? apiBase.slice(0, -4) : apiBase;
+function resolveBackendRoot(): string {
+  const apiBase = readApiBaseEnv()?.replace(/\/$/, "");
+  if (apiBase) {
+    return apiBase.endsWith("/api") ? apiBase.slice(0, -4) : apiBase;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    return "https://panda-studio.onrender.com";
+  }
+
+  return "http://localhost:5000";
 }
 
 const nextConfig: NextConfig = {
