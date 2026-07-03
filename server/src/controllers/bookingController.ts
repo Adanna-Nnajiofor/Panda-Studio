@@ -2,14 +2,17 @@ type Response = any;
 import { z } from "zod";
 import Booking from "../models/Booking";
 import Equipment from "../models/Equipment";
+import StudioRoom from "../models/StudioRoom";
 import User from "../models/User";
 import { AuthRequest } from "../types/auth";
 import { sendNotification } from "../services/notificationService";
+import { createNotification } from "../utils/notifications";
 
 // Zod schema for input validation
 const bookingSchema = z.object({
   service: z.string().nonempty(),
   equipment: z.array(z.string()).optional(),
+  studioRoomId: z.string().optional(),
   bookingDate: z.string().nonempty(),
   bookingTime: z.string().nonempty(),
   duration: z.number().positive(),
@@ -33,6 +36,7 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
     const {
       service,
       equipment,
+      studioRoomId,
       bookingDate,
       bookingTime,
       duration,
@@ -48,6 +52,7 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
       status: { $nin: ["cancelled"] },
     };
 
+    // Conflicts for existing service/equipment bookings
     const conflict = await Booking.findOne(baseConflictFilter).or([
       { service },
       { equipment: { $in: equipment || [] } },
@@ -58,6 +63,25 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
         message:
           "One or more selected items are already booked at this time. Please choose a different slot.",
       });
+    }
+
+    // Optional: conflict prevention for studio rooms (studioRoomId)
+    // Only enforced when studioRoomId is provided.
+    if (studioRoomId) {
+      // Note: Booking model currently doesn't enforce studioRoomId in schema here,
+      // but we added it to Booking model. This check is additive and only runs when provided.
+      const studioConflict = await Booking.findOne({
+        ...baseConflictFilter,
+
+        studioRoomId,
+      });
+
+      if (studioConflict) {
+        return res.status(409).json({
+          message:
+            "Studio room is already booked for the selected slot. Please choose a different time.",
+        });
+      }
     }
 
     if (equipment?.length) {
@@ -91,10 +115,21 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    if (studioRoomId) {
+      const studioRoom =
+        await StudioRoom.findById(studioRoomId).select("_id isActive");
+      if (!studioRoom || !studioRoom.isActive) {
+        return res.status(400).json({
+          message: "Selected studio room is not available.",
+        });
+      }
+    }
+
     const booking = await Booking.create({
       user: req.user!.id,
       service,
       equipment,
+      studioRoomId,
       bookingDate: date,
       bookingTime,
       duration,
@@ -104,6 +139,7 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
 
     const populatedBooking = await Booking.findById(booking._id)
       .populate("service")
+      .populate("studioRoomId")
       .populate("project");
 
     const currentUser = await User.findById(req.user!.id).select(
@@ -116,6 +152,13 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
         email: currentUser.email,
         booking: populatedBooking as any,
         userName: currentUser.fullName,
+      });
+      await createNotification({
+        userId: String(req.user!.id),
+        type: "booking",
+        title: "Booking Confirmed",
+        message: `Your booking ${populatedBooking?.referenceNumber ?? ""} has been confirmed.`,
+        link: "/bookings",
       });
     }
 
@@ -135,6 +178,7 @@ export const getUserBookings = async (req: AuthRequest, res: Response) => {
     const bookings = await Booking.find({ user: req.user!.id })
       .populate("service")
       .populate("equipment")
+      .populate("studioRoomId")
       .populate("project")
       .sort({ bookingDate: -1 });
 
@@ -151,6 +195,7 @@ export const getBookingById = async (req: AuthRequest, res: Response) => {
     const booking = await Booking.findById(req.params.id)
       .populate("service")
       .populate("equipment")
+      .populate("studioRoomId")
       .populate("project");
 
     if (!booking) return res.status(404).json({ message: "Booking not found" });
@@ -213,6 +258,7 @@ export const updateBookingStatus = async (req: AuthRequest, res: Response) => {
 
     const populatedBooking = await Booking.findById(booking._id)
       .populate("service")
+      .populate("studioRoomId")
       .populate("project");
 
     res.status(200).json({
@@ -248,6 +294,7 @@ export const getAllBookings = async (req: AuthRequest, res: Response) => {
     const bookings = await Booking.find(filter)
       .populate("user", "name email phone")
       .populate("service", "name price")
+      .populate("studioRoomId", "name slug")
       .sort({ bookingDate: -1 })
       .skip(skip)
       .limit(Number(limit));
@@ -304,6 +351,7 @@ export const cancelBooking = async (req: AuthRequest, res: Response) => {
 
     const populatedBooking = await Booking.findById(booking._id)
       .populate("service")
+      .populate("studioRoomId")
       .populate("project");
 
     res.status(200).json({

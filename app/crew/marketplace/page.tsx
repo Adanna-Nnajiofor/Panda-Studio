@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import DashboardShell from "../../../components/dashboard/DashboardShell";
 import RoleGate from "../../../components/dashboard/RoleGate";
+import { useAuthContext } from "../../../components/AuthProvider";
 
 import { apiJson } from "../../../lib/api";
 import { getErrorMessage } from "../../../lib/errors";
@@ -20,6 +21,7 @@ type CrewMember = {
 };
 
 export default function CrewMarketplacePage() {
+  const { user } = useAuthContext();
   const [crew, setCrew] = useState<CrewMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export default function CrewMarketplacePage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    void apiJson<{ users: CrewMember[] }>("/users/crew")
+    void apiJson<{ users: CrewMember[] }>("/users/crew/public")
       .then((data) => setCrew(data.users ?? []))
       .catch((err: unknown) =>
         setError(getErrorMessage(err, "Could not load crew directory.")),
@@ -41,6 +43,10 @@ export default function CrewMarketplacePage() {
   const submitHire = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedId) return;
+    if (!user) {
+      setError("Please login to send a hire request.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -63,7 +69,7 @@ export default function CrewMarketplacePage() {
   };
 
   return (
-    <RoleGate allowedRoles={["client", "admin", "super_admin"]}>
+    <RoleGate allowedRoles={["client", "admin", "super_admin"]} allowAnonymous>
       <DashboardShell
         kicker="Crew marketplace"
         title="Hire creative professionals"
@@ -137,7 +143,13 @@ export default function CrewMarketplacePage() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => setSelectedId(id)}
+                  onClick={() => {
+                    if (!user) {
+                      setError("Please login to send a hire request.");
+                      return;
+                    }
+                    setSelectedId(id);
+                  }}
                   className="mt-4 border-2 border-black bg-black px-3 py-2 text-xs font-black uppercase text-[#f2eadf]"
                 >
                   Hire

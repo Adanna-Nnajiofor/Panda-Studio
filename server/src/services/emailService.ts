@@ -171,3 +171,43 @@ export const sendAccountApprovedEmail = (email: string, userName: string) =>
       <p>You can now log in and start accepting jobs on the platform.</p>
     `),
   );
+
+export const sendEmailVerificationEmail = (
+  email: string,
+  userName: string,
+  verifyUrl: string,
+) =>
+  sendEmail(
+    email,
+    'Verify your Panda Studio email address',
+    baseTemplate(`
+      <h2 style="color:#1565c0;">📧 Verify Your Email</h2>
+      <p>Hi <strong>${userName}</strong>,</p>
+      <p>Thanks for signing up! Please verify your email address to activate your account.</p>
+      <div style="text-align:center;margin:28px 0;">
+        <a href="${verifyUrl}" style="background:#1a1a1a;color:#fff;padding:14px 32px;text-decoration:none;font-weight:bold;font-size:15px;border-radius:4px;display:inline-block;">Verify Email Address</a>
+      </div>
+      <p style="color:#666;font-size:13px;">This link expires in <strong>24 hours</strong>. If you did not create an account, you can safely ignore this email.</p>
+      <p style="color:#999;font-size:12px;word-break:break-all;">Or copy this link: ${verifyUrl}</p>
+    `),
+  );
+
+export const sendPasswordResetEmail = (
+  email: string,
+  userName: string,
+  resetUrl: string,
+) =>
+  sendEmail(
+    email,
+    'Reset your Panda Studio password',
+    baseTemplate(`
+      <h2 style="color:#c62828;">🔐 Password Reset Request</h2>
+      <p>Hi <strong>${userName}</strong>,</p>
+      <p>We received a request to reset your password. Click the button below to set a new password.</p>
+      <div style="text-align:center;margin:28px 0;">
+        <a href="${resetUrl}" style="background:#1a1a1a;color:#fff;padding:14px 32px;text-decoration:none;font-weight:bold;font-size:15px;border-radius:4px;display:inline-block;">Reset Password</a>
+      </div>
+      <p style="color:#666;font-size:13px;">This link expires in <strong>1 hour</strong>. If you did not request a password reset, you can safely ignore this email.</p>
+      <p style="color:#999;font-size:12px;word-break:break-all;">Or copy this link: ${resetUrl}</p>
+    `),
+  );

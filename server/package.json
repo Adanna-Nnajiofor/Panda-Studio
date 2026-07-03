@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "nodemon --watch src/**/*.ts --exec ts-node src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "seed:studio-rooms": "ts-node src/scripts/seedStudioRooms.ts",
+    "test": "pnpm build && node --test dist/tests/**/*.test.js"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +27,7 @@
     "multer": "^2.0.2",
     "nanoid": "^5.1.6",
     "nodemailer": "^6.10.1",
+    "pdfkit": "^0.19.1",
     "react-router-dom": "^7.13.1",
     "twilio": "^4.23.0",
     "winston": "^3.19.0"
@@ -37,6 +40,7 @@
     "@types/multer": "^2.1.0",
     "@types/node": "^20.19.33",
     "@types/nodemailer": "^7.0.11",
+    "@types/pdfkit": "^0.17.6",
     "@types/streamifier": "^0.1.2",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",

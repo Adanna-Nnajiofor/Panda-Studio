@@ -1,10 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import DashboardShell from "../../components/dashboard/DashboardShell";
 import RoleGate from "../../components/dashboard/RoleGate";
 import { apiJson } from "../../lib/api";
 import { getErrorMessage } from "../../lib/errors";
+import Link from "next/link";
+import { useAuthContext } from "../../components/AuthProvider";
 
 type CrewMember = {
   _id: string;
@@ -32,6 +34,7 @@ export default function DiscoverPage() {
   const [crew, setCrew] = useState<CrewMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated } = useAuthContext();
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -40,6 +43,18 @@ export default function DiscoverPage() {
       .catch((e) => setError(getErrorMessage(e, "Failed to load crew.")))
       .finally(() => setLoading(false));
   }, []);
+
+  const loginNextRoot = useMemo(
+    () => (crewId: string) =>
+      `/login?next=${encodeURIComponent(`/hire?crewId=${crewId}`)}`,
+    [],
+  );
+
+  const registerNextRoot = useMemo(
+    () => (crewId: string) =>
+      `/register?next=${encodeURIComponent(`/hire?crewId=${crewId}`)}`,
+    [],
+  );
 
   const filtered = crew.filter(
     (c) =>
@@ -51,6 +66,7 @@ export default function DiscoverPage() {
   return (
     <RoleGate
       allowedRoles={["client", "admin", "super_admin", "staff", "crew"]}
+      allowAnonymous
     >
       <DashboardShell
         kicker="Marketplace"
@@ -121,13 +137,25 @@ export default function DiscoverPage() {
                     ₦{c.portfolio.hourlyRate.toLocaleString()}/hr
                   </p>
                 ) : null}
-                <div className="mt-3 flex gap-2">
-                  <a
-                    href={`/hire?crewId=${c._id}`}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Link
+                    href={
+                      isAuthenticated
+                        ? `/hire?crewId=${c._id}`
+                        : loginNextRoot(c._id)
+                    }
                     className="border-2 border-black bg-black px-3 py-2 text-xs font-black uppercase text-[#f2eadf]"
                   >
                     Hire
-                  </a>
+                  </Link>
+                  {!isAuthenticated ? (
+                    <Link
+                      href={registerNextRoot(c._id)}
+                      className="border-2 border-black bg-white px-3 py-2 text-xs font-black uppercase"
+                    >
+                      Register to hire
+                    </Link>
+                  ) : null}
                   {c.portfolio?.showreelUrl ? (
                     <a
                       href={c.portfolio.showreelUrl}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
 import { useAuthContext } from "../AuthProvider";
-import { ROLE_LABELS, roleHomePath, type Role } from "../../lib/roles";
+import { ROLE_LABELS, type Role } from "../../lib/roles";
 
 type NavItem = {
   href: string;
@@ -76,7 +76,16 @@ const NAV_ITEMS: NavItem[] = [
     label: "Discover Crew",
     roles: ["client", "admin", "super_admin"],
   },
-  { href: "/hire/mine", label: "Hire Requests", roles: ["client", "crew"] },
+  {
+    href: "/become-crew",
+    label: "Become Crew",
+    roles: ["client"],
+  },
+  {
+    href: "/hire/mine",
+    label: "Hire Requests",
+    roles: ["crew", "staff", "admin", "super_admin"],
+  },
   {
     href: "/quotes",
     label: "Quotes",
@@ -124,6 +133,16 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/staff", label: "Staff Desk", roles: ["staff"] },
   // Admin
   { href: "/admin", label: "Admin Overview", roles: ["admin", "super_admin"] },
+  {
+    href: "/admin/crew-applications",
+    label: "Crew Applications",
+    roles: ["admin", "super_admin"],
+  },
+  {
+    href: "/admin/studio-rooms",
+    label: "Studio Rooms",
+    roles: ["admin", "super_admin"],
+  },
   { href: "/analytics", label: "Analytics", roles: ["admin", "super_admin"] },
 ];
 

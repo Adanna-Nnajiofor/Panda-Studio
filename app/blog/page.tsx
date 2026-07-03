@@ -34,6 +34,7 @@ export default function BlogPage() {
   return (
     <RoleGate
       allowedRoles={["client", "crew", "staff", "admin", "super_admin"]}
+      allowAnonymous
     >
       <DashboardShell
         kicker="Studio"

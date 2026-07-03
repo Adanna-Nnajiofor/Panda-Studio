@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
-import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HeroDemoModal from "@/components/HeroDemoModal";
 
@@ -61,8 +60,6 @@ export default function DemoPage() {
 
   return (
     <>
-      <Header />
-
       <main className="min-h-screen px-4 sm:px-6 py-10 sm:py-14 max-w-6xl mx-auto">
         {/* Top hero */}
         <section className="relative overflow-hidden rounded-4xl border-4 border-black bg-white p-4 sm:p-6 lg:p-10 shadow-[12px_12px_0_0_#000]">
@@ -191,7 +188,7 @@ export default function DemoPage() {
         </section>
 
         {/* Footer CTA */}
-        <section className="mt-10 rounded-[2rem] border-4 border-black bg-[#1f1b18] text-[#f2eadf] p-6 sm:p-8 shadow-[12px_12px_0_0_#000]">
+        <section className="mt-10 rounded-4xl border-4 border-black bg-[#1f1b18] text-[#f2eadf] p-6 sm:p-8 shadow-[12px_12px_0_0_#000]">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h2 className="text-xl sm:text-2xl font-black uppercase">

@@ -2,14 +2,46 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import Header from "@/components/Header";
+import { useEffect, useState } from "react";
 import Footer from "@/components/Footer";
+import { apiJson } from "@/lib/api";
+
+type CmsPage = {
+  heroTitle?: string;
+  heroSubtitle?: string;
+  ctaPrimaryLabel?: string;
+  ctaPrimaryHref?: string;
+  ctaSecondaryLabel?: string;
+  ctaSecondaryHref?: string;
+};
 
 export default function AboutPage() {
+  const [cms, setCms] = useState<CmsPage | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await apiJson<{ page: CmsPage }>("/cms/pages/about");
+        setCms(data.page ?? null);
+      } catch {
+        setCms(null);
+      }
+    };
+    void load();
+  }, []);
+
+  const heroTitle =
+    cms?.heroTitle ?? "Build productions that actually run smoothly";
+  const heroSubtitle =
+    cms?.heroSubtitle ??
+    "Panda Studio is a single, role-aware platform for booking crews, renting equipment, tracking projects, and approving media—so your next shoot does not depend on who has the latest message.";
+  const primaryCtaLabel = cms?.ctaPrimaryLabel ?? "Register";
+  const primaryCtaHref = cms?.ctaPrimaryHref ?? "/register";
+  const secondaryCtaLabel = cms?.ctaSecondaryLabel ?? "Contact us";
+  const secondaryCtaHref = cms?.ctaSecondaryHref ?? "/contact";
+
   return (
     <>
-      <Header />
-
       <main className="min-h-screen px-4 sm:px-6 py-12 sm:py-16 max-w-6xl mx-auto">
         <section className="relative overflow-hidden rounded-4xl border-4 border-black bg-white p-4 sm:p-6 lg:p-10 shadow-[12px_12px_0_0_#000]">
           <div className="absolute -right-10 sm:-right-20 top-0 h-60 sm:h-72 w-60 sm:w-72 rounded-full bg-[#f4d98f]/30 blur-3xl" />
@@ -21,12 +53,10 @@ export default function AboutPage() {
                 About Panda Studio
               </p>
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase leading-tight">
-                Build productions that actually run smoothly
+                {heroTitle}
               </h1>
               <p className="mt-4 max-w-2xl text-sm sm:text-base opacity-80">
-                Panda Studio is a single, role-aware platform for booking crews,
-                renting equipment, tracking projects, and approving media—so
-                your next shoot does not depend on who has the latest message.
+                {heroSubtitle}
               </p>
             </div>
 
@@ -155,7 +185,7 @@ export default function AboutPage() {
               ))}
             </div>
 
-            <div className="rounded-[2rem] border-4 border-black bg-black text-white p-6 sm:p-10 shadow-[12px_12px_0_0_#000]">
+            <div className="rounded-4xl border-4 border-black bg-black text-white p-6 sm:p-10 shadow-[12px_12px_0_0_#000]">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-3xl font-black uppercase">
@@ -168,16 +198,16 @@ export default function AboutPage() {
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Link
-                    href="/register"
+                    href={primaryCtaHref}
                     className="w-full sm:w-auto border-4 border-white bg-white px-6 py-3 text-sm font-black uppercase text-black text-center rounded-full"
                   >
-                    Register
+                    {primaryCtaLabel}
                   </Link>
                   <Link
-                    href="/contact"
+                    href={secondaryCtaHref}
                     className="w-full sm:w-auto border-4 border-white bg-transparent px-6 py-3 text-sm font-black uppercase text-white text-center rounded-full"
                   >
-                    Contact us
+                    {secondaryCtaLabel}
                   </Link>
                 </div>
               </div>

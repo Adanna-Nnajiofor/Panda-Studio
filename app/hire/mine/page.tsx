@@ -46,11 +46,11 @@ export default function HireRequestsPage() {
   };
 
   return (
-    <RoleGate allowedRoles={["client", "crew"]}>
+    <RoleGate allowedRoles={["crew", "staff", "admin", "super_admin"]}>
       <DashboardShell
         kicker="Hire requests"
         title="Collaboration inbox"
-        summary="Sent and received hire requests."
+        summary="View and manage hire requests for crew and operations."
       >
         {loading ? <p>Loading...</p> : null}
         {error ? <p className="text-sm text-red-700">{error}</p> : null}

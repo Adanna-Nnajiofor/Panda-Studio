@@ -4,6 +4,7 @@ import {
   createProject,
   deleteProject,
   getMyProjects,
+  getPublicProjects,
   getProjectById,
   getProjects,
   updateProject,
@@ -15,11 +16,13 @@ import { validateOrigin } from "../middleware/csrfMiddleware";
 const router = Router();
 
 // Public browse endpoints
+router.get("/public", getPublicProjects as any);
 router.get("/", getProjects as any);
-router.get("/:id", getProjectById as any);
 
 // Auth-only endpoints
 router.get("/mine", protect(), getMyProjects as any);
+
+router.get("/:id", getProjectById as any);
 
 // Writes (auth + roles)
 

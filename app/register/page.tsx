@@ -1,10 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, FormEvent, useMemo, useState } from "react";
+import { Suspense, FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthContext } from "../../components/AuthProvider";
-import { ROLES, roleHomePath } from "../../lib/roles";
+import { apiJson } from "../../lib/api";
+import { getErrorMessage } from "../../lib/errors";
+import { roleHomePath } from "../../lib/roles";
+
+type ReferralLookupResponse = {
+  valid: boolean;
+  referrerName?: string;
+  rewardAmount?: number;
+  currency?: string;
+};
 
 function RegisterForm() {
   const router = useRouter();
@@ -13,11 +22,46 @@ function RegisterForm() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<(typeof ROLES)[number]>("client");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [referralCode, setReferralCode] = useState("");
+  const [referralHint, setReferralHint] = useState<string | null>(null);
+
+  const referralFromQuery = useMemo(
+    () => (searchParams.get("ref") ?? "").trim().toUpperCase(),
+    [searchParams],
+  );
+
+  useEffect(() => {
+    if (!referralFromQuery) return;
+    setReferralCode(referralFromQuery);
+
+    let cancelled = false;
+    apiJson<ReferralLookupResponse>(`/referrals/lookup/${referralFromQuery}`)
+      .then((result) => {
+        if (cancelled) return;
+        if (!result.valid) {
+          setReferralHint("Referral code is invalid or expired.");
+          return;
+        }
+
+        const amount = Number(result.rewardAmount ?? 0).toLocaleString();
+        const currency = result.currency ?? "NGN";
+        setReferralHint(
+          `Invited by ${result.referrerName ?? "a Panda Studio user"}. Reward: ${currency} ${amount}.`,
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setReferralHint("Referral code is invalid or expired.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [referralFromQuery]);
 
   const nextPath = useMemo(() => {
     const next = searchParams.get("next");
@@ -45,12 +89,22 @@ function RegisterForm() {
         name,
         email,
         password,
-        role,
       });
+
+      if (referralCode) {
+        try {
+          await apiJson("/referrals/apply", {
+            method: "POST",
+            body: JSON.stringify({ code: referralCode }),
+          });
+        } catch {
+          // Registration should still succeed even if referral apply fails.
+        }
+      }
 
       router.replace(nextPath || roleHomePath(user.role as string | null));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to register.");
+      setError(getErrorMessage(err, "Unable to register."));
     } finally {
       setPending(false);
     }
@@ -60,11 +114,13 @@ function RegisterForm() {
     <div className="mx-auto max-w-xl border-4 border-black bg-[#fffef8] p-6 shadow-[10px_10px_0_0_#000]">
       <p className="text-xs font-black uppercase tracking-[0.3em]">Register</p>
 
-      <h1 className="mt-3 text-4xl font-black uppercase">Create your role</h1>
+      <h1 className="mt-3 text-4xl font-black uppercase">
+        Create your account
+      </h1>
 
       <p className="mt-2 text-sm">
-        Start with a profile and join the studio as a client, crew member, staff
-        member, or admin-linked account.
+        Sign up as a client to start booking Panda Studio services. Crew and
+        staff roles are granted by the Panda Studio team after review.
       </p>
 
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
@@ -100,24 +156,6 @@ function RegisterForm() {
 
         <label className="block">
           <span className="text-xs font-black uppercase tracking-[0.2em]">
-            Role
-          </span>
-
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value as (typeof ROLES)[number])}
-            className="mt-2 w-full border-4 border-black bg-[#fff8ea] px-4 py-3 outline-none"
-          >
-            {ROLES.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="text-xs font-black uppercase tracking-[0.2em]">
             Password
           </span>
 
@@ -144,6 +182,12 @@ function RegisterForm() {
         {error ? (
           <p className="border-4 border-black bg-[#ffcfbf] p-3 text-sm font-black">
             {error}
+          </p>
+        ) : null}
+
+        {referralHint ? (
+          <p className="border-4 border-black bg-[#fff8ea] p-3 text-sm font-black">
+            {referralHint}
           </p>
         ) : null}
 

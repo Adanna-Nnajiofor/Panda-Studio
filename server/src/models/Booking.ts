@@ -4,6 +4,7 @@ export interface IBooking extends Document {
   user: Types.ObjectId;
   service: Types.ObjectId;
   equipment?: Types.ObjectId[];
+  studioRoomId?: Types.ObjectId;
   bookingDate: Date;
   bookingTime: string;
   duration: number;
@@ -24,6 +25,7 @@ const bookingSchema: Schema<IBooking> = new Schema(
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     service: { type: Schema.Types.ObjectId, ref: "Service", required: true },
     equipment: [{ type: Schema.Types.ObjectId, ref: "Equipment" }],
+    studioRoomId: { type: Schema.Types.ObjectId, ref: "StudioRoom" },
     bookingDate: { type: Date, required: true },
     bookingTime: { type: String, required: true },
     duration: { type: Number, required: true },
@@ -64,5 +66,6 @@ bookingSchema.virtual("project", {
 bookingSchema.index({ user: 1 });
 bookingSchema.index({ bookingDate: 1 });
 bookingSchema.index({ status: 1 });
+bookingSchema.index({ studioRoomId: 1, bookingDate: 1, bookingTime: 1 });
 
 export default mongoose.model<IBooking>("Booking", bookingSchema);

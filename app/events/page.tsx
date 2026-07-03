@@ -46,6 +46,7 @@ export default function EventsPage() {
   return (
     <RoleGate
       allowedRoles={["client", "crew", "staff", "admin", "super_admin"]}
+      allowAnonymous
     >
       <DashboardShell
         kicker="Community"

@@ -31,6 +31,23 @@ import searchRoutes from "./routes/searchRoutes";
 import cartRoutes from "./routes/cartRoutes";
 import wishlistRoutes from "./routes/wishlistRoutes";
 import checkoutRoutes from "./routes/checkoutRoutes";
+import crewApplicationRoutes from "./routes/crewApplicationRoutes";
+import invoiceRoutes from "./routes/invoiceRoutes";
+import waitlistRoutes from "./routes/waitlistRoutes";
+import cmsRoutes from "./routes/cmsRoutes";
+import studioRoomRoutes from "./routes/studioRoomRoutes";
+import auditLogRoutes from "./routes/auditLogRoutes";
+import contractRoutes from "./routes/contractRoutes";
+import calendarEventRoutes from "./routes/calendarEventRoutes";
+import filmOpsRoutes from "./routes/filmOpsRoutes";
+import conversationRoutes from "./routes/conversationRoutes";
+import categoryRoutes from "./routes/categoryRoutes";
+import availabilityScheduleRoutes from "./routes/availabilityScheduleRoutes";
+import faqRoutes from "./routes/faqRoutes";
+import settingRoutes from "./routes/settingRoutes";
+import equipmentBookingRoutes from "./routes/equipmentBookingRoutes";
+import studioBookingRoutes from "./routes/studioBookingRoutes";
+import awardRoutes from "./routes/awardRoutes";
 
 import { listCrewDirectory } from "./controllers/crewDirectoryController";
 import { protect } from "./middleware/authMiddleware";
@@ -49,51 +66,37 @@ app.set("trust proxy", 1);
 connectDB();
 connectRedis();
 
-/* -----------------------------
-    CORS — reads CLIENT_ORIGIN from .env
------------------------------- */
+/* ─── CORS ─────────────────────────────────────────────────────────────────── */
 const parseAllowedOrigins = (): Set<string> => {
   const origins = new Set([
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://panda-studio-beta.vercel.app",
   ]);
-
   const raw = process.env.CLIENT_ORIGIN ?? "";
   for (const entry of raw.split(",")) {
     const trimmed = entry.trim().replace(/\/$/, "");
     if (trimmed) origins.add(trimmed);
   }
-
   return origins;
 };
 
 const isAllowedOrigin = (origin: string): boolean => {
-  const normalizedOrigin = origin.replace(/\/$/, "");
-  if (!normalizedOrigin) return false;
-
-  const allowedOrigins = parseAllowedOrigins();
-  if (allowedOrigins.has(normalizedOrigin)) return true;
-
+  const normalized = origin.replace(/\/$/, "");
+  if (!normalized) return false;
+  if (parseAllowedOrigins().has(normalized)) return true;
   return /^(https:\/\/)[a-z0-9-]+(\.vercel\.app|\.vercel\.dev)$/i.test(
-    normalizedOrigin,
+    normalized,
   );
 };
-
-const allowedOrigins = parseAllowedOrigins();
 
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-
-      const normalizedOrigin = origin.replace(/\/$/, "");
-
-      if (isAllowedOrigin(normalizedOrigin)) {
-        return callback(null, true);
-      }
-
-      logger.warn("CORS blocked origin", { origin: normalizedOrigin });
+      const normalized = origin.replace(/\/$/, "");
+      if (isAllowedOrigin(normalized)) return callback(null, true);
+      logger.warn("CORS blocked origin", { origin: normalized });
       return callback(null, false);
     },
     credentials: true,
@@ -107,14 +110,10 @@ app.use(
   }),
 );
 
-/* -----------------------------
-   CORE MIDDLEWARES
------------------------------- */
+/* ─── Core middleware ───────────────────────────────────────────────────────── */
 app.use(express.json());
 
-/* -----------------------------
-   ROUTES
------------------------------- */
+/* ─── Routes ────────────────────────────────────────────────────────────────── */
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/services", serviceRoutes);
@@ -141,24 +140,34 @@ app.use("/api/search", searchRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/checkout", checkoutRoutes);
+app.use("/api/crew-applications", crewApplicationRoutes);
+app.use("/api/invoices", invoiceRoutes);
+app.use("/api/waitlist", waitlistRoutes);
+app.use("/api/cms", cmsRoutes);
+app.use("/api/studio-rooms", studioRoomRoutes);
+app.use("/api/audit-logs", auditLogRoutes);
+app.use("/api/contracts", contractRoutes);
+app.use("/api/calendar/events", calendarEventRoutes);
+app.use("/api/film-ops", filmOpsRoutes);
+app.use("/api/conversations", conversationRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/availability-schedules", availabilityScheduleRoutes);
+app.use("/api/faqs", faqRoutes);
+app.use("/api/settings", settingRoutes);
+app.use("/api/equipment-bookings", equipmentBookingRoutes);
+app.use("/api/studio-bookings", studioBookingRoutes);
+app.use("/api/awards", awardRoutes);
 
-// protected route
-
+// Crew directory
 app.get("/api/users/crew", protect(), listCrewDirectory);
 
-// health check
-app.get("/", (_req, res) => {
-  res.send("Panda Studio API is running!");
-});
+// Health check
+app.get("/", (_req, res) => res.send("Panda Studio API is running!"));
 
-/* -----------------------------
-   ERROR HANDLER
------------------------------- */
+/* ─── Error handler ─────────────────────────────────────────────────────────── */
 app.use(errorMiddleware);
 
-/* -----------------------------
-   START SERVER
------------------------------- */
+/* ─── Start server ──────────────────────────────────────────────────────────── */
 app.listen(PORT, () => {
   logger.info(`Server running on http://localhost:${PORT}`);
 });

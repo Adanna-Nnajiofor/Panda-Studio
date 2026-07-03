@@ -3,6 +3,7 @@
 import Link from "next/link";
 import DashboardShell from "../../components/dashboard/DashboardShell";
 import RoleGate from "../../components/dashboard/RoleGate";
+import WorkspaceModulesGrid from "../../components/dashboard/WorkspaceModulesGrid";
 
 const highlights = [
   {
@@ -100,6 +101,8 @@ export default function ClientDashboardPage() {
             </div>
           </article>
         </section>
+
+        <WorkspaceModulesGrid />
       </DashboardShell>
     </RoleGate>
   );

@@ -1,30 +1,42 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
 
+export type NotificationType =
+  | "booking"
+  | "payment"
+  | "file_ready"
+  | "message"
+  | "crew_application"
+  | "account_approved"
+  | "project_update"
+  | "reminder"
+  | "system";
+
 export interface INotification extends Document {
   user: Types.ObjectId;
-  type: "booking" | "payment" | "file_ready" | "message";
+  type: NotificationType;
   title: string;
   message: string;
+  link?: string;
   isRead: boolean;
   createdAt: Date;
 }
 
 const notificationSchema: Schema<INotification> = new Schema(
   {
-    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     type: {
       type: String,
-      enum: ["booking", "payment", "file_ready", "message"],
+      enum: ["booking", "payment", "file_ready", "message", "crew_application", "account_approved", "project_update", "reminder", "system"],
       required: true,
     },
     title: { type: String, required: true },
     message: { type: String, required: true },
-    isRead: { type: Boolean, default: false },
+    link: { type: String, default: null },
+    isRead: { type: Boolean, default: false, index: true },
   },
   { timestamps: true },
 );
 
-export default mongoose.model<INotification>(
-  "Notification",
-  notificationSchema,
-);
+notificationSchema.index({ user: 1, isRead: 1 });
+
+export default mongoose.model<INotification>("Notification", notificationSchema);

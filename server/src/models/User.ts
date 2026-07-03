@@ -23,10 +23,20 @@ export interface IUser {
   isApproved: boolean;
   isActive: boolean;
   approvalStatus: ApprovalStatus;
+  requestedRole?: UserRole | null;
   availability: CrewAvailability;
   approvedBy?: Types.ObjectId | null;
   approvedAt?: Date | null;
   assignedProjects: Types.ObjectId[];
+  emailVerified: boolean;
+  emailVerifyToken?: string | null;
+  emailVerifyExpires?: Date | null;
+  passwordResetToken?: string | null;
+  passwordResetExpires?: Date | null;
+  twoFactorEnabled: boolean;
+  twoFactorSecret?: string | null;
+  twoFactorTempSecret?: string | null;
+  twoFactorBackupCodes: string[];
   createdAt?: Date;
   updatedAt?: Date;
 
@@ -124,6 +134,13 @@ const userSchema = new Schema<IUser>(
       },
     },
 
+    requestedRole: {
+      type: String,
+      enum: ["client", "admin", "super_admin", "crew", "staff"],
+      default: null,
+      index: true,
+    },
+
     availability: {
       type: String,
       enum: ["available", "busy", "on_project", "offline"],
@@ -147,6 +164,20 @@ const userSchema = new Schema<IUser>(
         ref: "Project",
       },
     ],
+
+    emailVerified: { type: Boolean, default: false, index: true },
+    emailVerifyToken: { type: String, default: null, select: false },
+    emailVerifyExpires: { type: Date, default: null, select: false },
+    passwordResetToken: { type: String, default: null, select: false },
+    passwordResetExpires: { type: Date, default: null, select: false },
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String, default: null, select: false },
+    twoFactorTempSecret: { type: String, default: null, select: false },
+    twoFactorBackupCodes: {
+      type: [String],
+      default: [],
+      select: false,
+    },
   },
   {
     timestamps: true,

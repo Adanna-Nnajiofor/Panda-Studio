@@ -24,7 +24,7 @@ export default function ProjectsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await apiJson<{ projects: Project[] }>("/projects");
+        const data = await apiJson<{ projects: Project[] }>("/projects/public");
         setProjects(data.projects ?? []);
       } catch (err: unknown) {
         setError(getErrorMessage(err, "Failed to load your projects."));

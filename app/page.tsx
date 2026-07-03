@@ -12,7 +12,6 @@ import {
   registerNextPath,
 } from "../lib/catalog";
 import type { EquipmentPreview, ServicePreview } from "../lib/shopping";
-import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HeroDemoModal from "@/components/HeroDemoModal";
 import Image from "next/image";
@@ -92,6 +91,17 @@ const roleCards: { role: Role; blurb: string; outcome: string }[] = [
   },
 ];
 
+type FeaturedStudioRoom = {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  basePrice: number;
+  capacity: number;
+  isFeatured?: boolean;
+  images?: string[];
+};
+
 export default function HomePage() {
   const [showDemo, setShowDemo] = useState(false);
   const [equipment, setEquipment] = useState<EquipmentPreview[]>([]);
@@ -100,6 +110,10 @@ export default function HomePage() {
   const [servicesLoading, setServicesLoading] = useState(true);
   const [equipmentError, setEquipmentError] = useState<string | null>(null);
   const [servicesError, setServicesError] = useState<string | null>(null);
+  const [featuredRooms, setFeaturedRooms] = useState<FeaturedStudioRoom[]>([]);
+  const [featuredRoomsError, setFeaturedRoomsError] = useState<string | null>(
+    null,
+  );
 
   const [showCatalog, setShowCatalog] = useState(false);
   const [reservation, setReservation] = useState<
@@ -125,10 +139,12 @@ export default function HomePage() {
 
   useEffect(() => {
     const loadData = async () => {
-      const [equipmentResult, servicesResult] = await Promise.allSettled([
-        apiJson<{ equipment: EquipmentPreview[] }>("/equipment"),
-        apiJson<ServicePreview[]>("/services"),
-      ]);
+      const [equipmentResult, servicesResult, featuredRoomsResult] =
+        await Promise.allSettled([
+          apiJson<{ equipment: EquipmentPreview[] }>("/equipment"),
+          apiJson<ServicePreview[]>("/services"),
+          apiJson<{ rooms: FeaturedStudioRoom[] }>("/studio-rooms/featured"),
+        ]);
 
       if (equipmentResult.status === "fulfilled") {
         setEquipment(equipmentResult.value.equipment ?? []);
@@ -151,6 +167,24 @@ export default function HomePage() {
             "Failed to load featured services.",
           ),
         );
+      }
+
+      if (featuredRoomsResult.status === "fulfilled") {
+        setFeaturedRooms(featuredRoomsResult.value.rooms ?? []);
+      } else {
+        const fallback = await Promise.resolve(
+          apiJson<{ rooms: FeaturedStudioRoom[] }>("/studio-rooms")
+            .then((res) => (res.rooms ?? []).filter((room) => room.isFeatured))
+            .catch(() => [] as FeaturedStudioRoom[]),
+        );
+
+        if (fallback.length > 0) {
+          setFeaturedRooms(fallback.slice(0, 6));
+        } else {
+          // Backward compatibility: older API deployments may not expose /studio-rooms/featured.
+          // In that case we keep homepage usable without showing a hard error.
+          setFeaturedRoomsError(null);
+        }
       }
 
       setEquipmentLoading(false);
@@ -185,8 +219,6 @@ export default function HomePage() {
 
   return (
     <>
-      <Header />
-
       <main className="min-h-screen bg-linear-to-b from-[#f6efe3] via-[#efe0c2] to-[#e6d2aa] text-black">
         {/* HERO */}
         <section className="relative overflow-hidden px-6 py-24">
@@ -346,19 +378,102 @@ export default function HomePage() {
           </div>
         </section>
 
+        <section className="px-4 sm:px-6 py-12 mx-auto max-w-6xl">
+          <div className="border-4 border-black bg-[#fff8ea] p-6 shadow-[10px_10px_0_0_#000]">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.3em]">
+                  Featured spaces
+                </p>
+                <h2 className="mt-2 text-2xl font-black uppercase">
+                  Studio rooms picked by the operations team
+                </h2>
+              </div>
+              <Link
+                href="/studio-map"
+                className="border-2 border-black bg-white px-3 py-2 text-xs font-black uppercase"
+              >
+                Explore studio map
+              </Link>
+            </div>
+
+            {featuredRoomsError ? (
+              <p className="mt-4 border-2 border-black bg-[#ffcfbf] p-3 text-sm font-black">
+                {featuredRoomsError}
+              </p>
+            ) : null}
+
+            {featuredRooms.length === 0 ? (
+              <p className="mt-4 text-sm text-slate-600">
+                Featured rooms will appear here once configured by admins.
+              </p>
+            ) : (
+              <div className="mt-5 grid gap-4 md:grid-cols-3">
+                {featuredRooms.map((room) => (
+                  <article
+                    key={room._id}
+                    className="overflow-hidden border-4 border-black bg-white shadow-[6px_6px_0_0_#000]"
+                  >
+                    {room.images?.[0] ? (
+                      <Image
+                        src={room.images[0]}
+                        alt={room.name}
+                        width={640}
+                        height={320}
+                        unoptimized
+                        className="h-40 w-full border-b-4 border-black object-cover"
+                      />
+                    ) : (
+                      <div className="h-40 border-b-4 border-black bg-[#f2eadf]" />
+                    )}
+                    <div className="p-4">
+                      <p className="text-lg font-black uppercase">
+                        {room.name}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        ₦{room.basePrice.toLocaleString()}/hr · Capacity{" "}
+                        {room.capacity}
+                      </p>
+                      {room.description ? (
+                        <p className="mt-2 text-sm text-slate-700">
+                          {room.description}
+                        </p>
+                      ) : null}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Link
+                          href={`/studio-rooms/${room._id}`}
+                          className="border-2 border-black bg-white px-2 py-1 text-[11px] font-black uppercase"
+                        >
+                          View details
+                        </Link>
+                        <Link
+                          href={`/bookings/new?studioRoomId=${room._id}`}
+                          className="border-2 border-black bg-black px-2 py-1 text-[11px] font-black uppercase text-[#f2eadf]"
+                        >
+                          Book now
+                        </Link>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
         {/* EQUIPMENT + SERVICES PREVIEW */}
-        <section className="relative overflow-hidden px-4 sm:px-6 py-16 mx-auto max-w-6xl">
+        <section className="relative overflow-hidden px-4 sm:px-6 py-12 sm:py-16 mx-auto max-w-6xl">
           <div className="absolute -right-20 top-10 h-64 w-64 rounded-full bg-[#f4d98f]/30 blur-3xl" />
           <div className="absolute left-0 top-24 h-48 w-48 rounded-full bg-black/5 blur-3xl" />
 
-          <div className="relative grid gap-8 lg:grid-cols-[1.3fr_0.95fr]">
-            <div className="rounded-4xl border-4 border-black bg-[#fef7ec] p-8 shadow-[14px_14px_0_0_#000]">
+          <div className="relative grid gap-6 lg:gap-8 lg:grid-cols-[1.3fr_0.95fr]">
+            <div className="rounded-4xl border-4 border-black bg-[#fef7ec] p-4 sm:p-6 lg:p-8 shadow-[10px_10px_0_0_#000] sm:shadow-[14px_14px_0_0_#000]">
               <div className="flex flex-col gap-4">
                 <div className="space-y-3">
                   <p className="text-xs font-black uppercase tracking-[0.4em] text-[#7d673d]">
                     Studio collection
                   </p>
-                  <h2 className="text-4xl font-black uppercase leading-tight">
+                  <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black uppercase leading-tight">
                     A hand-picked roster of kit and packages
                   </h2>
                   <p className="max-w-3xl text-sm opacity-85">
@@ -373,14 +488,14 @@ export default function HomePage() {
                   </div>
                 ) : null}
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="relative overflow-hidden rounded-[1.75rem] border-4 border-black bg-black text-white p-6 shadow-[8px_8px_0_0_#000]">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="relative overflow-hidden rounded-[1.75rem] border-4 border-black bg-black text-white p-4 sm:p-5 lg:p-6 shadow-[8px_8px_0_0_#000]">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_40%)]" />
                     <div className="relative z-10">
                       <p className="text-xs font-black uppercase tracking-[0.3em] text-[#d6caa9]">
                         Gear spotlight
                       </p>
-                      <h3 className="mt-4 text-2xl font-black uppercase">
+                      <h3 className="mt-4 text-xl sm:text-2xl font-black uppercase">
                         Equipment picks
                       </h3>
                       <div className="mt-6 space-y-4">
@@ -405,7 +520,7 @@ export default function HomePage() {
                               <p className="text-xs uppercase tracking-[0.18em] opacity-70">
                                 {item.type}
                               </p>
-                              <p className="mt-2 text-lg font-black uppercase">
+                              <p className="mt-2 text-base sm:text-lg font-black uppercase break-words">
                                 {item.name}
                               </p>
                               <p className="mt-1 text-sm opacity-80">
@@ -416,7 +531,7 @@ export default function HomePage() {
                                 onClick={() =>
                                   setReserveTarget("equipment", item)
                                 }
-                                className="mt-3 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.14em] hover:bg-white hover:text-black"
+                                className="mt-3 rounded-full border border-white/30 bg-white/10 px-3 sm:px-4 py-2 text-[11px] sm:text-xs font-black uppercase tracking-[0.08em] sm:tracking-[0.14em] hover:bg-white hover:text-black"
                               >
                                 Rent this gear
                               </button>
@@ -427,11 +542,11 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  <div className="overflow-hidden rounded-[1.75rem] border-4 border-black bg-white p-6 shadow-[8px_8px_0_0_#000]">
+                  <div className="overflow-hidden rounded-[1.75rem] border-4 border-black bg-white p-4 sm:p-5 lg:p-6 shadow-[8px_8px_0_0_#000]">
                     <p className="text-xs font-black uppercase tracking-[0.3em] text-[#7d673d]">
                       Service spotlight
                     </p>
-                    <h3 className="mt-4 text-2xl font-black uppercase">
+                    <h3 className="mt-4 text-xl sm:text-2xl font-black uppercase">
                       Studio packages
                     </h3>
                     <div className="mt-6 space-y-4">
@@ -443,7 +558,7 @@ export default function HomePage() {
                           <p className="text-xs uppercase tracking-[0.18em] opacity-70">
                             {item.durationInHours}h session
                           </p>
-                          <p className="mt-2 text-lg font-black uppercase">
+                          <p className="mt-2 text-base sm:text-lg font-black uppercase break-words">
                             {item.name}
                           </p>
                           <p className="mt-1 text-sm opacity-80">
@@ -459,13 +574,13 @@ export default function HomePage() {
 
             <div className="space-y-6">
               {reservation ? (
-                <div className="overflow-hidden rounded-[2rem] border-4 border-black bg-[#1b1a18] p-6 text-white shadow-[14px_14px_0_0_#000]">
+                <div className="overflow-hidden rounded-4xl border-4 border-black bg-[#1b1a18] p-4 sm:p-6 text-white shadow-[10px_10px_0_0_#000] sm:shadow-[14px_14px_0_0_#000]">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.4em] text-[#d9c7a0]">
                         Ready to reserve
                       </p>
-                      <h3 className="mt-3 text-2xl font-black uppercase leading-tight">
+                      <h3 className="mt-3 text-xl sm:text-2xl font-black uppercase leading-tight">
                         {reservation.kind === "equipment"
                           ? "Rent this kit"
                           : "Book this package"}
@@ -494,14 +609,14 @@ export default function HomePage() {
                     </Link>
                   </div>
 
-                  <div className="mt-6 rounded-[1.5rem] bg-[#000000]/20 p-4 text-sm text-[#d4cab8]">
+                  <div className="mt-6 rounded-3xl bg-[#000000]/20 p-4 text-sm text-[#d4cab8]">
                     Create a studio profile and lock this item inside your
                     booking funnel. The selected gear or package stays ready
                     until you sign in.
                   </div>
                 </div>
               ) : (
-                <div className="rounded-[2rem] border-4 border-black bg-[#f7f0e2] p-6 shadow-[14px_14px_0_0_#000]">
+                <div className="rounded-4xl border-4 border-black bg-[#f7f0e2] p-6 shadow-[14px_14px_0_0_#000]">
                   <p className="text-xs font-black uppercase tracking-[0.4em] text-[#7d673d]">
                     Start your booking flow
                   </p>
@@ -516,21 +631,21 @@ export default function HomePage() {
                 </div>
               )}
 
-              <div className="rounded-[2rem] border-4 border-black bg-[#f7f0e2] p-6 shadow-[14px_14px_0_0_#000]">
+              <div className="rounded-4xl border-4 border-black bg-[#f7f0e2] p-4 sm:p-6 shadow-[10px_10px_0_0_#000] sm:shadow-[14px_14px_0_0_#000]">
                 <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.4em] text-[#7d673d]">
                         Catalog preview
                       </p>
-                      <h3 className="text-2xl font-black uppercase">
+                      <h3 className="text-xl sm:text-2xl font-black uppercase">
                         Top studio picks
                       </h3>
                     </div>
                     <button
                       type="button"
                       onClick={toggleCatalog}
-                      className="rounded-full border-2 border-black bg-black px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-[#f2eadf]"
+                      className="w-full sm:w-auto rounded-full border-2 border-black bg-black px-4 py-2 text-xs font-black uppercase tracking-[0.08em] sm:tracking-[0.14em] text-[#f2eadf]"
                     >
                       {showCatalog ? "Show less" : "Show more"}
                     </button>
@@ -558,7 +673,7 @@ export default function HomePage() {
                             key={item._id}
                             type="button"
                             onClick={() => setReserveTarget("equipment", item)}
-                            className="rounded-[1.25rem] border border-black bg-white px-4 py-3 text-left text-sm font-black uppercase tracking-[0.12em] shadow-[6px_6px_0_0_#000] transition hover:bg-[#f2eadf]"
+                            className="rounded-[1.25rem] border border-black bg-white px-4 py-3 text-left text-sm font-black uppercase tracking-[0.06em] sm:tracking-[0.12em] shadow-[6px_6px_0_0_#000] transition hover:bg-[#f2eadf]"
                           >
                             <span>{item.name}</span>
                             <span className="block text-xs font-normal uppercase tracking-[0.2em] text-[#6b5840]">
@@ -594,7 +709,7 @@ export default function HomePage() {
                             key={item._id}
                             type="button"
                             onClick={() => setReserveTarget("service", item)}
-                            className="rounded-[1.25rem] border border-black bg-white px-4 py-3 text-left text-sm font-black uppercase tracking-[0.12em] shadow-[6px_6px_0_0_#000] transition hover:bg-[#f2eadf]"
+                            className="rounded-[1.25rem] border border-black bg-white px-4 py-3 text-left text-sm font-black uppercase tracking-[0.06em] sm:tracking-[0.12em] shadow-[6px_6px_0_0_#000] transition hover:bg-[#f2eadf]"
                           >
                             <span>{item.name}</span>
                             <span className="block text-xs font-normal uppercase tracking-[0.2em] text-[#6b5840]">

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import DashboardShell from "../../components/dashboard/DashboardShell";
+import { useAuthContext } from "../../components/AuthProvider";
 
 import { apiJson, apiFetch } from "../../lib/api";
 
@@ -16,6 +17,7 @@ type Board = {
 };
 
 export default function MoodboardPage() {
+  const { user } = useAuthContext();
   const [boards, setBoards] = useState<Board[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +26,7 @@ export default function MoodboardPage() {
 
   const load = async () => {
     try {
-      const d = await apiJson<{ boards: Board[] }>("/moodboards");
+      const d = await apiJson<{ boards: Board[] }>("/moodboards/public");
       setBoards(d.boards ?? []);
     } catch (e) {
       setError(getErrorMessage(e, "Failed to load."));
@@ -38,6 +40,10 @@ export default function MoodboardPage() {
   }, []);
 
   const create = async () => {
+    if (!user) {
+      setError("Please login to create a mood board.");
+      return;
+    }
     if (!title.trim()) return;
     setSaving(true);
     try {
@@ -59,21 +65,27 @@ export default function MoodboardPage() {
       title="Mood Boards"
       summary="Collect visual references, colours, and ideas for your production sessions."
     >
-      <div className="flex gap-2">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="New board title..."
-          className="flex-1 border-4 border-black bg-[#fff8ea] px-4 py-2 text-sm font-black outline-none"
-        />
-        <button
-          onClick={create}
-          disabled={saving || !title.trim()}
-          className="border-4 border-black bg-black px-5 py-2 text-xs font-black uppercase text-[#f2eadf] disabled:opacity-50"
-        >
-          {saving ? "Creating..." : "Create"}
-        </button>
-      </div>
+      {user ? (
+        <div className="flex gap-2">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="New board title..."
+            className="flex-1 border-4 border-black bg-[#fff8ea] px-4 py-2 text-sm font-black outline-none"
+          />
+          <button
+            onClick={create}
+            disabled={saving || !title.trim()}
+            className="border-4 border-black bg-black px-5 py-2 text-xs font-black uppercase text-[#f2eadf] disabled:opacity-50"
+          >
+            {saving ? "Creating..." : "Create"}
+          </button>
+        </div>
+      ) : (
+        <p className="text-sm border-2 border-black bg-[#fff8ea] p-3">
+          Browse public boards. Login to create and manage your own mood boards.
+        </p>
+      )}
       {loading ? (
         <p className="text-sm">Loading...</p>
       ) : error ? (

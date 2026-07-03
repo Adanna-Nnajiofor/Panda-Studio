@@ -9,15 +9,21 @@ type RoleGateProps = {
   allowedRoles: Role[];
   children: ReactNode;
   fallback?: ReactNode;
+  allowAnonymous?: boolean;
 };
 
-export function RoleGate({ allowedRoles, children, fallback }: RoleGateProps) {
+export function RoleGate({
+  allowedRoles,
+  children,
+  fallback,
+  allowAnonymous = false,
+}: RoleGateProps) {
   const { user, loading } = useAuthContext();
 
   // Hydration-safe: render a stable placeholder until auth is resolved on the client.
   // DashboardShell/RoleGate currently depend on user data; rendering the same structure
   // first avoids server/client markup differences.
-  const shouldBlock = loading;
+  const shouldBlock = loading && !allowAnonymous;
 
   const role = user?.role;
 
@@ -33,9 +39,10 @@ export function RoleGate({ allowedRoles, children, fallback }: RoleGateProps) {
   }
 
   const hasAccess =
-    typeof role === "string" &&
-    isRole(role) &&
-    allowedRoles.includes(role as Role);
+    allowAnonymous ||
+    (typeof role === "string" &&
+      isRole(role) &&
+      allowedRoles.includes(role as Role));
 
   if (!hasAccess) {
     if (!user) {

@@ -48,6 +48,7 @@ export type ApiUser = {
   fullName?: string;
   email?: string;
   role?: Role | string;
+  requestedRole?: string | null;
   avatar?: string;
   phone?: string;
   company?: string;

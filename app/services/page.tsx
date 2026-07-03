@@ -87,7 +87,7 @@ export default function ServicesPage() {
             </button>
           </div>
         ) : (
-          <section className="grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          <section className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {!loading && services.length === 0 ? (
               <div className="col-span-full border-4 border-black bg-white p-16 text-center shadow-[10px_10px_0_0_#000]">
                 <p className="text-xl font-black uppercase text-gray-300 tracking-tighter">
@@ -101,10 +101,10 @@ export default function ServicesPage() {
             {services.map((service) => (
               <article
                 key={service._id}
-                className="group flex flex-col border-4 border-black bg-white p-8 shadow-[10px_10px_0_0_#000] transition-all hover:-translate-y-1 hover:shadow-[14px_14px_0_0_#000]"
+                className="group flex flex-col border-4 border-black bg-white p-5 sm:p-6 lg:p-8 shadow-[8px_8px_0_0_#000] sm:shadow-[10px_10px_0_0_#000] transition-all hover:-translate-y-1 hover:shadow-[12px_12px_0_0_#000] sm:hover:shadow-[14px_14px_0_0_#000]"
               >
                 <div className="flex-1">
-                  <h2 className="text-2xl font-black uppercase leading-[0.9] tracking-tight group-hover:text-gray-800 transition-colors">
+                  <h2 className="text-xl sm:text-2xl font-black uppercase leading-[0.95] tracking-tight break-words group-hover:text-gray-800 transition-colors">
                     {service.name}
                   </h2>
                   <p className="mt-4 text-sm leading-relaxed text-gray-700">
@@ -113,7 +113,7 @@ export default function ServicesPage() {
                   </p>
                 </div>
 
-                <div className="mt-8 flex items-center justify-between border-t-2 border-black pt-6">
+                <div className="mt-6 flex items-center justify-between border-t-2 border-black pt-5 sm:mt-8 sm:pt-6">
                   <div className="space-y-0.5">
                     <p className="text-[0.6rem] font-black uppercase tracking-[0.2em] text-gray-400">
                       Base Price
@@ -122,7 +122,7 @@ export default function ServicesPage() {
                       ₦{service.basePrice.toLocaleString()}
                     </p>
                   </div>
-                  <div className="text-right space-y-0.5">
+                  <div className="text-right space-y-0.5 shrink-0">
                     <p className="text-[0.6rem] font-black uppercase tracking-[0.2em] text-gray-400">
                       Duration
                     </p>
@@ -135,7 +135,7 @@ export default function ServicesPage() {
                 <Link
                   href={`/bookings/new?serviceId=${encodeURIComponent(service._id)}`}
                   onClick={handleProtectedAction}
-                  className="mt-8 block w-full border-4 border-black bg-black py-3.5 text-center text-[0.75rem] font-black uppercase tracking-[0.25em] text-[#f2eadf] hover:bg-gray-800 transition-all active:scale-95 shadow-[4px_4px_0_0_#ddd] group-hover:shadow-[6px_6px_0_0_#aaa]"
+                  className="mt-6 sm:mt-8 block w-full border-4 border-black bg-black py-3.5 text-center text-[0.7rem] sm:text-[0.75rem] font-black uppercase tracking-[0.14em] sm:tracking-[0.25em] text-[#f2eadf] hover:bg-gray-800 transition-all active:scale-95 shadow-[4px_4px_0_0_#ddd] group-hover:shadow-[6px_6px_0_0_#aaa]"
                 >
                   Book now
                 </Link>

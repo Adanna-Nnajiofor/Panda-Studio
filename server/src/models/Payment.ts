@@ -5,7 +5,12 @@ export interface IPayment extends Document {
   user: Types.ObjectId;
   amount: number;
   currency: string;
-  paymentMethod: "paystack" | "stripe" | "card" | "bank_transfer";
+  paymentMethod:
+    | "paystack"
+    | "flutterwave"
+    | "stripe"
+    | "card"
+    | "bank_transfer";
   status: "pending" | "processing" | "completed" | "failed" | "refunded";
   transactionId?: string;
   reference?: string;
@@ -25,7 +30,7 @@ const paymentSchema: Schema<IPayment> = new Schema(
     currency: { type: String, default: "NGN" }, // NGN for Paystack, USD for Stripe
     paymentMethod: {
       type: String,
-      enum: ["paystack", "stripe", "card", "bank_transfer"],
+      enum: ["paystack", "flutterwave", "stripe", "card", "bank_transfer"],
       required: true,
     },
     status: {

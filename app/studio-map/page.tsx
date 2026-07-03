@@ -1,6 +1,10 @@
 "use client";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import DashboardShell from "../../components/dashboard/DashboardShell";
 import RoleGate from "../../components/dashboard/RoleGate";
+import { apiJson } from "../../lib/api";
+import { getErrorMessage } from "../../lib/errors";
 
 const SPACES = [
   {
@@ -54,7 +58,36 @@ const INFO = [
   { label: "Contact", value: "studio@pandastudio.ng · +234 800 PANDA" },
 ];
 
+type StudioRoom = {
+  _id: string;
+  name: string;
+  description?: string;
+  basePrice: number;
+  capacity: number;
+  isFeatured?: boolean;
+  amenities?: string[];
+};
+
 export default function StudioMapPage() {
+  const [rooms, setRooms] = useState<StudioRoom[]>([]);
+  const [loadingRooms, setLoadingRooms] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadRooms = async () => {
+      try {
+        const res = await apiJson<{ rooms: StudioRoom[] }>("/studio-rooms");
+        setRooms(res.rooms ?? []);
+      } catch (err: unknown) {
+        setError(getErrorMessage(err, "Could not load studio rooms."));
+      } finally {
+        setLoadingRooms(false);
+      }
+    };
+
+    void loadRooms();
+  }, []);
+
   return (
     <RoleGate
       allowedRoles={["client", "crew", "staff", "admin", "super_admin"]}
@@ -118,6 +151,68 @@ export default function StudioMapPage() {
               >
                 View Services →
               </a>
+            </div>
+
+            <div className="border-4 border-black bg-white p-5 shadow-[6px_6px_0_0_#000]">
+              <p className="mb-3 text-xs font-black uppercase tracking-[0.2em]">
+                Live Studio Rooms
+              </p>
+
+              {loadingRooms ? (
+                <p className="text-sm text-slate-500">Loading rooms...</p>
+              ) : error ? (
+                <p className="text-sm text-red-700">{error}</p>
+              ) : rooms.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  No active rooms available yet.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {rooms.map((room) => (
+                    <div
+                      key={room._id}
+                      className="border-2 border-black bg-[#fff8ea] p-3"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-black">{room.name}</p>
+                        {room.isFeatured ? (
+                          <span className="border border-black bg-[#fff2b8] px-1.5 py-0.5 text-[10px] font-black uppercase">
+                            Featured
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1 text-xs text-slate-600">
+                        ₦{room.basePrice.toLocaleString()}/hr · Capacity{" "}
+                        {room.capacity}
+                      </p>
+                      {room.description ? (
+                        <p className="mt-1 text-xs text-slate-600">
+                          {room.description}
+                        </p>
+                      ) : null}
+                      {room.amenities?.length ? (
+                        <p className="mt-1 text-[11px] text-slate-500">
+                          {room.amenities.slice(0, 4).join(" · ")}
+                        </p>
+                      ) : null}
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Link
+                          href={`/studio-rooms/${room._id}`}
+                          className="inline-block border-2 border-black bg-white px-2 py-1 text-[11px] font-black uppercase"
+                        >
+                          View details
+                        </Link>
+                        <Link
+                          href={`/bookings/new?studioRoomId=${room._id}`}
+                          className="inline-block border-2 border-black px-2 py-1 text-[11px] font-black uppercase"
+                        >
+                          Book this room
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

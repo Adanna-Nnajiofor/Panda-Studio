@@ -1,4 +1,5 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
+import AuthSession from "../models/AuthSession";
 import User from "../models/User";
 import type { AuthenticatedRequest, UserRole } from "../types/auth";
 import { verifyToken } from "../utils/jwt";
@@ -14,6 +15,11 @@ const extractToken = (req: Request): string | null => {
   const xAuthToken = req.headers["x-auth-token"];
   if (typeof xAuthToken === "string" && xAuthToken.trim().length > 0) {
     return xAuthToken.trim();
+  }
+
+  const queryToken = req.query?.token;
+  if (typeof queryToken === "string" && queryToken.trim().length > 0) {
+    return queryToken.trim();
   }
 
   return null;
@@ -134,6 +140,18 @@ export const protect = (...allowedRoles: UserRole[]): RequestHandler => {
 
       const serializedUser = serializeUser(user.toObject());
 
+      if (decoded.sid) {
+        const session = await AuthSession.findOne({
+          sessionId: decoded.sid,
+          user: serializedUser.id,
+          revokedAt: null,
+        }).select("_id");
+
+        if (!session) {
+          return sendUnauthorized(res, "Session expired or revoked");
+        }
+      }
+
       if (serializedUser.isActive === false) {
         return sendForbidden(res, "Your account is inactive");
       }
@@ -155,6 +173,7 @@ export const protect = (...allowedRoles: UserRole[]): RequestHandler => {
 
       req.user = serializedUser;
       req.token = token;
+      req.tokenPayload = decoded;
 
       next();
     } catch {

@@ -11,7 +11,7 @@ export default function Footer() {
             services in one sleek platform.
           </p>
         </div>
-        <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm text-slate-600 sm:grid-cols-3 lg:flex lg:flex-wrap lg:gap-4">
           <Link href="/services" className="hover:text-slate-900">
             Services
           </Link>
@@ -29,6 +29,15 @@ export default function Footer() {
           </Link>
           <Link href="/contact" className="hover:text-slate-900">
             Contact
+          </Link>
+          <Link href="/faq" className="hover:text-slate-900">
+            FAQ
+          </Link>
+          <Link href="/terms" className="hover:text-slate-900">
+            Terms
+          </Link>
+          <Link href="/privacy" className="hover:text-slate-900">
+            Privacy
           </Link>
         </div>
       </div>

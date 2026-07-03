@@ -27,6 +27,23 @@ export const getMyMoodBoards = async (
   }
 };
 
+export const getPublicMoodBoards = async (
+  _req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const boards = await MoodBoard.find({ isPublic: true })
+      .sort({ updatedAt: -1 })
+      .limit(100)
+      .select("title isPublic items updatedAt");
+    res.json({ success: true, count: boards.length, boards });
+  } catch {
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch public mood boards" });
+  }
+};
+
 export const getMoodBoardById = async (
   req: Request,
   res: Response,

@@ -2,6 +2,7 @@ import express from "express";
 import { protect } from "../middleware/authMiddleware";
 import {
   getMyMoodBoards,
+  getPublicMoodBoards,
   getMoodBoardById,
   createMoodBoard,
   updateMoodBoard,
@@ -12,11 +13,12 @@ import {
 const router = express.Router();
 
 // Public browse (public boards only)
-router.get("/", getMyMoodBoards as any);
-router.get("/:id", getMoodBoardById as any);
+router.get("/public", getPublicMoodBoards as any);
+router.get("/", getPublicMoodBoards as any);
 
 // Auth-only operations
 router.get("/mine", protect(), getMyMoodBoards);
+router.get("/:id", getMoodBoardById as any);
 router.post("/", protect(), createMoodBoard);
 router.put("/:id", protect(), updateMoodBoard);
 router.delete("/:id", protect(), deleteMoodBoard);

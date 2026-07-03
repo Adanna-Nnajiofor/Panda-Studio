@@ -2,7 +2,6 @@ import type { Request, Response } from "express";
 import Booking from "../models/Booking";
 import Payment from "../models/Payment";
 import User from "../models/User";
-import HireRequest from "../models/HireRequest";
 import Review from "../models/Review";
 
 // Revenue summary - last 6 months
@@ -15,7 +14,7 @@ export const getRevenueAnalytics = async (
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
     const revenueByMonth = await Payment.aggregate([
-      { $match: { status: "success", createdAt: { $gte: sixMonthsAgo } } },
+      { $match: { status: "completed", createdAt: { $gte: sixMonthsAgo } } },
       {
         $group: {
           _id: {
@@ -45,7 +44,7 @@ export const getRevenueAnalytics = async (
     ]);
 
     const totalRevenue = await Payment.aggregate([
-      { $match: { status: "success" } },
+      { $match: { status: "completed" } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
 
@@ -115,7 +114,7 @@ export const getClientLTV = async (
 ): Promise<void> => {
   try {
     const clientLTV = await Payment.aggregate([
-      { $match: { status: "success" } },
+      { $match: { status: "completed" } },
       {
         $group: {
           _id: "$user",
@@ -164,10 +163,10 @@ export const getCrewPerformance = async (
 ): Promise<void> => {
   try {
     const crewPerformance = await Review.aggregate([
-      { $match: { revieweeRole: "crew" } },
+      { $match: { targetType: "crew", targetUser: { $ne: null } } },
       {
         $group: {
-          _id: "$reviewee",
+          _id: "$targetUser",
           avgRating: { $avg: "$rating" },
           totalReviews: { $sum: 1 },
         },
@@ -204,6 +203,44 @@ export const getCrewPerformance = async (
     res
       .status(500)
       .json({ success: false, message: "Failed to fetch crew performance" });
+  }
+};
+
+export const getAdminDashboardSummary = async (
+  _req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const [
+      activeTeams,
+      jobsPendingApproval,
+      crewAvailabilityFlags,
+      payrollPrepItems,
+    ] = await Promise.all([
+      User.countDocuments({ role: { $in: ["crew", "staff"] }, isActive: true }),
+      Booking.countDocuments({ status: "pending" }),
+      User.countDocuments({
+        role: "crew",
+        isActive: true,
+        availability: { $in: ["busy", "on_project"] },
+      }),
+      Booking.countDocuments({ status: { $in: ["completed", "in_progress"] } }),
+    ]);
+
+    res.json({
+      success: true,
+      stats: {
+        teamsMonitored: activeTeams,
+        jobsPendingApproval,
+        crewAvailabilityFlags,
+        payrollPrepItems,
+      },
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch admin dashboard summary",
+    });
   }
 };
 

@@ -110,8 +110,10 @@ export const getUsers = async (
     if (typeof isApproved === "string") {
       filter.isApproved = isApproved === "true";
     } else if (pending === "true") {
-      filter.isApproved = false;
-      filter.role = { $in: ["crew", "staff"] };
+      filter.$or = [
+        { isApproved: false, role: { $in: ["crew", "staff"] } },
+        { requestedRole: "crew", role: "client" },
+      ];
     }
 
     if (typeof isActive === "string") {
@@ -294,6 +296,8 @@ export const updateUser = async (
       targetUser.availability = availability;
     }
 
+    const canModifyRole = isPrivilegedRole(authUser.role) && authUser.id !== id;
+
     if (authUser.id === id || isPrivilegedRole(authUser.role)) {
       if (typeof isActive === "boolean") {
         targetUser.isActive = isActive;
@@ -302,20 +306,27 @@ export const updateUser = async (
       if (typeof isApproved === "boolean") {
         targetUser.isApproved = isApproved;
       }
+    }
 
-      if (typeof role === "string" && isValidUserRole(role)) {
-        if (
-          (role === "admin" || role === "super_admin") &&
-          authUser.role !== "super_admin"
-        ) {
-          return res.status(403).json({
-            success: false,
-            message: "Only super admins can assign admin roles",
-          });
-        }
-
-        targetUser.role = role;
+    if (typeof role === "string" && isValidUserRole(role)) {
+      if (!canModifyRole) {
+        return res.status(403).json({
+          success: false,
+          message: "Only admins can change user roles",
+        });
       }
+
+      if (
+        (role === "admin" || role === "super_admin") &&
+        authUser.role !== "super_admin"
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "Only super admins can assign admin roles",
+        });
+      }
+
+      targetUser.role = role;
     }
 
     if (targetUser.role === "crew" || targetUser.role === "staff") {
@@ -361,11 +372,20 @@ export const approveUser = async (
       return sendNotFound(res);
     }
 
-    if (user.role !== "crew" && user.role !== "staff") {
+    if (
+      user.role !== "crew" &&
+      user.role !== "staff" &&
+      !(user.role === "client" && user.requestedRole === "crew")
+    ) {
       return res.status(400).json({
         success: false,
         message: "Only crew and staff accounts require approval",
       });
+    }
+
+    if (user.role === "client" && user.requestedRole === "crew") {
+      user.role = "crew";
+      user.requestedRole = null;
     }
 
     user.isApproved = true;

@@ -1,7 +1,7 @@
-import { z } from 'zod';
-import HireRequest from '../models/HireRequest';
-import User from '../models/User';
-import type { AuthRequest } from '../types/auth';
+import { z } from "zod";
+import HireRequest from "../models/HireRequest";
+import User from "../models/User";
+import type { AuthRequest } from "../types/auth";
 
 type Response = any;
 
@@ -16,16 +16,22 @@ export const createHireRequest = async (req: AuthRequest, res: Response) => {
   try {
     const parsed = createHireSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ message: 'Invalid request', errors: parsed.error.flatten().fieldErrors });
+      return res
+        .status(400)
+        .json({
+          message: "Invalid request",
+          errors: parsed.error.flatten().fieldErrors,
+        });
     }
 
     const crew = await User.findOne({
       _id: parsed.data.crewId,
-      role: 'crew',
-      approvalStatus: 'approved',
+      role: "crew",
+      approvalStatus: "approved",
       isActive: true,
     });
-    if (!crew) return res.status(404).json({ message: 'Crew member not found' });
+    if (!crew)
+      return res.status(404).json({ message: "Crew member not found" });
 
     const hire = await HireRequest.create({
       client: req.user!.id,
@@ -36,57 +42,71 @@ export const createHireRequest = async (req: AuthRequest, res: Response) => {
     });
 
     const populated = await HireRequest.findById(hire._id)
-      .populate('crew', 'fullName email department position bio availability')
-      .populate('client', 'fullName email');
+      .populate("crew", "fullName email department position bio availability")
+      .populate("client", "fullName email");
 
-    return res.status(201).json({ message: 'Hire request sent', hire: populated });
+    return res
+      .status(201)
+      .json({ message: "Hire request sent", hire: populated });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
 export const getMyHireRequests = async (req: AuthRequest, res: Response) => {
   try {
-    const filter =
-      req.user!.role === 'crew'
-        ? { crew: req.user!.id }
-        : { client: req.user!.id };
+    let filter: Record<string, unknown> = {};
+
+    if (req.user!.role === "crew") {
+      filter = { crew: req.user!.id };
+    } else if (req.user!.role === "client") {
+      filter = { client: req.user!.id };
+    }
 
     const hires = await HireRequest.find(filter)
-      .populate('crew', 'fullName email department position bio availability')
-      .populate('client', 'fullName email')
+      .populate("crew", "fullName email department position bio availability")
+      .populate("client", "fullName email")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({ hires });
   } catch (error) {
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
 export const respondToHireRequest = async (req: AuthRequest, res: Response) => {
   try {
-    const { status } = req.body as { status?: 'accepted' | 'declined' };
-    if (!status || !['accepted', 'declined'].includes(status)) {
-      return res.status(400).json({ message: 'status must be accepted or declined' });
+    const { status } = req.body as { status?: "accepted" | "declined" };
+    if (!status || !["accepted", "declined"].includes(status)) {
+      return res
+        .status(400)
+        .json({ message: "status must be accepted or declined" });
     }
 
     const hire = await HireRequest.findById(req.params.id);
-    if (!hire) return res.status(404).json({ message: 'Request not found' });
+    if (!hire) return res.status(404).json({ message: "Request not found" });
 
-    if (req.user!.role === 'crew' && hire.crew.toString() !== req.user!.id) {
-      return res.status(403).json({ message: 'Forbidden' });
+    if (req.user!.role === "client") {
+      return res
+        .status(403)
+        .json({ message: "Clients cannot respond to hire requests" });
     }
 
+    if (req.user!.role === "crew" && hire.crew.toString() !== req.user!.id) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    // Admin, super_admin, and staff may manage hire requests.
     hire.status = status;
     await hire.save();
 
     const populated = await HireRequest.findById(hire._id)
-      .populate('crew', 'fullName email')
-      .populate('client', 'fullName email');
+      .populate("crew", "fullName email")
+      .populate("client", "fullName email");
 
     return res.status(200).json({ hire: populated });
   } catch (error) {
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: "Server error" });
   }
 };

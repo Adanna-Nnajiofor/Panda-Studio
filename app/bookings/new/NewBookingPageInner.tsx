@@ -20,17 +20,27 @@ type EquipmentOption = {
   hourlyRate: number;
 };
 
+type StudioRoomOption = {
+  _id: string;
+  name: string;
+  basePrice: number;
+  capacity: number;
+};
+
 export default function NewBookingPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const preselectedService = searchParams.get("serviceId") ?? "";
   const preselectedEquipment = searchParams.get("equipmentId") ?? "";
+  const preselectedStudioRoom = searchParams.get("studioRoomId") ?? "";
 
   const [services, setServices] = useState<ServiceOption[]>([]);
   const [equipmentList, setEquipmentList] = useState<EquipmentOption[]>([]);
+  const [studioRooms, setStudioRooms] = useState<StudioRoomOption[]>([]);
 
   const [serviceId, setServiceId] = useState(preselectedService);
+  const [studioRoomId, setStudioRoomId] = useState(preselectedStudioRoom);
   const [equipmentIds, setEquipmentIds] = useState<string[]>(
     preselectedEquipment ? [preselectedEquipment] : [],
   );
@@ -47,13 +57,15 @@ export default function NewBookingPageInner() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [svc, eq] = await Promise.all([
+        const [svc, eq, rooms] = await Promise.all([
           apiJson<ServiceOption[]>("/services"),
           apiJson<{ equipment: EquipmentOption[] }>("/equipment"),
+          apiJson<{ rooms: StudioRoomOption[] }>("/studio-rooms"),
         ]);
 
         setServices(Array.isArray(svc) ? svc : []);
         setEquipmentList(eq.equipment ?? []);
+        setStudioRooms(rooms.rooms ?? []);
       } catch (err: unknown) {
         setError(getErrorMessage(err, "Failed to load booking options."));
       }
@@ -64,11 +76,34 @@ export default function NewBookingPageInner() {
 
   useEffect(() => {
     const svc = services.find((s) => s._id === serviceId);
-    if (svc) {
-      setDuration(svc.durationInHours);
-      setTotalAmount(svc.basePrice);
-    }
+    if (!svc) return;
+    setDuration(svc.durationInHours);
   }, [serviceId, services]);
+
+  useEffect(() => {
+    const svc = services.find((s) => s._id === serviceId);
+    const room = studioRooms.find((r) => r._id === studioRoomId);
+    const selectedEquipment = equipmentList.filter((eq) =>
+      equipmentIds.includes(eq._id),
+    );
+
+    const equipmentTotal = selectedEquipment.reduce(
+      (sum, eq) => sum + eq.hourlyRate * duration,
+      0,
+    );
+    const roomTotal = room ? room.basePrice * duration : 0;
+    const serviceTotal = svc ? svc.basePrice : 0;
+
+    setTotalAmount(serviceTotal + equipmentTotal + roomTotal);
+  }, [
+    serviceId,
+    studioRoomId,
+    equipmentIds,
+    duration,
+    services,
+    studioRooms,
+    equipmentList,
+  ]);
 
   const toggleEquipment = (id: string) => {
     setEquipmentIds((prev) =>
@@ -87,6 +122,7 @@ export default function NewBookingPageInner() {
         body: JSON.stringify({
           service: serviceId,
           equipment: equipmentIds.length ? equipmentIds : undefined,
+          studioRoomId: studioRoomId || undefined,
           bookingDate,
           bookingTime,
           duration,
@@ -131,6 +167,26 @@ export default function NewBookingPageInner() {
               {services.map((s) => (
                 <option key={s._id} value={s._id}>
                   {s.name} — ₦{s.basePrice.toLocaleString()}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Studio Room */}
+          <div>
+            <label className="block text-xs font-black uppercase tracking-[0.2em]">
+              Studio Room (optional)
+            </label>
+            <select
+              value={studioRoomId}
+              onChange={(e) => setStudioRoomId(e.target.value)}
+              className="mt-1 w-full border-2 border-black px-3 py-2 text-sm"
+            >
+              <option value="">No room preference</option>
+              {studioRooms.map((room) => (
+                <option key={room._id} value={room._id}>
+                  {room.name} — ₦{room.basePrice.toLocaleString()}/hr · cap{" "}
+                  {room.capacity}
                 </option>
               ))}
             </select>

@@ -120,7 +120,7 @@ export default function EquipmentPage() {
             </button>
           </div>
         ) : (
-          <section className="mt-8 grid gap-6 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+          <section className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {filtered.length === 0 ? (
               <div className="col-span-full border-4 border-black bg-white p-12 text-center shadow-[8px_8px_0_0_#000]">
                 <p className="text-lg font-black uppercase">No gear found</p>
@@ -157,11 +157,11 @@ export default function EquipmentPage() {
                   )}
                 </div>
 
-                <div className="p-5">
+                <div className="p-4 sm:p-5">
                   <p className="text-[0.65rem] font-black uppercase tracking-[0.24em] text-gray-500">
                     {item.type}
                   </p>
-                  <h2 className="mt-1 text-xl font-black uppercase leading-tight">
+                  <h2 className="mt-1 text-lg sm:text-xl font-black uppercase leading-tight break-words">
                     {item.name}
                   </h2>
                   <p className="mt-2 line-clamp-2 text-sm text-gray-700 min-h-[2.5rem]">
@@ -187,18 +187,18 @@ export default function EquipmentPage() {
                       equipmentName={item.name}
                       compact
                     />
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <Link
                         href={`/bookings/new?equipmentId=${encodeURIComponent(item._id)}`}
                         onClick={handleProtectedAction}
-                        className="border-2 border-black bg-[#f2eadf] py-2.5 text-center text-[0.65rem] font-black uppercase tracking-[0.16em] hover:bg-[#e6d8c0] transition-colors"
+                        className="border-2 border-black bg-[#f2eadf] py-2.5 text-center text-[0.62rem] sm:text-[0.65rem] font-black uppercase tracking-[0.08em] sm:tracking-[0.16em] hover:bg-[#e6d8c0] transition-colors"
                       >
                         Add to booking
                       </Link>
                       <Link
                         href={`/equipment/rent?equipmentId=${encodeURIComponent(item._id)}`}
                         onClick={handleProtectedAction}
-                        className="border-2 border-black bg-white py-2.5 text-center text-[0.65rem] font-black uppercase tracking-[0.16em] hover:bg-gray-100 transition-colors"
+                        className="border-2 border-black bg-white py-2.5 text-center text-[0.62rem] sm:text-[0.65rem] font-black uppercase tracking-[0.08em] sm:tracking-[0.16em] hover:bg-gray-100 transition-colors"
                       >
                         Rent now
                       </Link>

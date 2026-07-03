@@ -12,6 +12,7 @@ import {
   updateProfile,
   updateUser,
 } from "../controllers/userController";
+import { listPublicCrewDirectory } from "../controllers/crewDirectoryController";
 import { authorizeRoles, protect } from "../middleware/authMiddleware";
 import { validateOrigin } from "../middleware/csrfMiddleware";
 
@@ -32,6 +33,7 @@ router.get(
   authorizeRoles("admin", "super_admin"),
   getPendingUsers,
 );
+router.get("/crew/public", listPublicCrewDirectory as any);
 router.get("/", protect(), authorizeRoles("admin", "super_admin"), getUsers);
 router.get("/:id", protect(), getUserById);
 router.patch("/:id", validateOrigin, protect(), updateUser);

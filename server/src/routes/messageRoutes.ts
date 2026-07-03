@@ -4,24 +4,52 @@ import {
   markConversationRead,
   sendMessage,
   listConversation,
+  uploadMessageAttachments,
 } from "../controllers/messageController";
 import { validateOrigin } from "../middleware/csrfMiddleware";
+import { addClient, removeClient } from "../utils/sseHub";
+import type { AuthRequest } from "../types/auth";
+import type { Response } from "express";
+import { upload } from "../middleware/uploadMiddleware";
 
 const router = Router();
 
-// All message routes require auth
+// SSE stream — client connects here to receive real-time messages
+router.get("/stream", protect(), (req, res: Response) => {
+  const userId = (req as AuthRequest).user?.id;
+  if (!userId) {
+    res.status(401).end();
+    return;
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  // Send a heartbeat every 25s to keep connection alive
+  const heartbeat = setInterval(() => res.write(":heartbeat\n\n"), 25000);
+
+  addClient(userId, res);
+
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    removeClient(res);
+  });
+});
+
+// All other message routes require auth
 router.use(protect());
 
-// Send a message between two users (optionally scoped to a project)
 router.post("/", validateOrigin, sendMessage as any);
-
-// List conversation between two users (optionally scoped to a project)
+router.post(
+  "/attachments",
+  validateOrigin,
+  upload.array("files", 10),
+  uploadMessageAttachments as any,
+);
 router.get("/", listConversation as any);
-
-// Mark all messages from otherUser as read for the current user (optionally scoped to project)
 router.patch("/read", validateOrigin, markConversationRead as any);
-
-// Admin helper (optional): admin can fetch any conversation
 router.get(
   "/admin/conversation",
   authorizeRoles("admin", "super_admin"),

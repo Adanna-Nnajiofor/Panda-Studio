@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Image from "next/image";
 
@@ -96,8 +95,6 @@ function SocialCard({
 export default function ContactPage() {
   return (
     <>
-      <Header />
-
       <main className="min-h-screen px-4 sm:px-6 py-16 max-w-6xl mx-auto">
         <div className="border-4 border-black bg-white p-6 sm:p-10 shadow-[12px_12px_0_0_#000]">
           <div className="flex flex-col gap-2">

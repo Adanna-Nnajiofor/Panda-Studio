@@ -4,11 +4,24 @@ import Message from "../models/Message";
 import Project from "../models/Project";
 import type { AuthRequest } from "../types/auth";
 import User from "../models/User";
+import { pushToUser } from "../utils/sseHub";
+import { uploadToCloudinary } from "../utils/cloudinaryUpload";
 
 const sendMessageSchema = z.object({
   receiverId: z.string().min(1),
   projectId: z.string().optional(),
   message: z.string().min(1).max(5000),
+  attachments: z
+    .array(
+      z.object({
+        url: z.string().url(),
+        fileName: z.string().max(255).optional(),
+        mimeType: z.string().max(255).optional(),
+        size: z.number().int().nonnegative().optional(),
+      }),
+    )
+    .max(10)
+    .optional(),
 });
 
 const conversationQuerySchema = z.object({
@@ -18,6 +31,11 @@ const conversationQuerySchema = z.object({
 
 const markReadSchema = z.object({
   otherUserId: z.string().min(1),
+  projectId: z.string().optional(),
+});
+
+const uploadAttachmentsSchema = z.object({
+  receiverId: z.string().min(1),
   projectId: z.string().optional(),
 });
 
@@ -76,7 +94,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     const sender = req.user;
     if (!sender) return res.status(401).json({ message: "Unauthorized" });
 
-    const { receiverId, projectId, message } = parsed.data;
+    const { receiverId, projectId, message, attachments } = parsed.data;
 
     const receiverExists = await User.exists({ _id: receiverId });
     if (!receiverExists)
@@ -92,12 +110,16 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       receiver: receiverId,
       project: projectId,
       message,
+      attachments: attachments ?? [],
     });
 
     const populated = await Message.findById(msg._id)
       .populate("sender", "fullName avatar role")
       .populate("receiver", "fullName avatar role")
       .populate("project", "_id progressStatus");
+
+    // Push real-time event to receiver
+    pushToUser(receiverId, "new_message", populated);
 
     return res.status(201).json({ message: "Sent", msg: populated });
   } catch (err) {
@@ -172,6 +194,74 @@ export const markConversationRead = async (req: AuthRequest, res: Response) => {
     await Message.updateMany(filter, { $set: { isRead: true } });
 
     return res.status(200).json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ message: "Server error", error: err });
+  }
+};
+
+export const uploadMessageAttachments = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    const parsed = uploadAttachmentsSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        message: "Invalid upload payload",
+        errors: parsed.error.flatten().fieldErrors,
+      });
+    }
+
+    const sender = req.user;
+    if (!sender) return res.status(401).json({ message: "Unauthorized" });
+
+    const { receiverId, projectId } = parsed.data;
+    const allowed = await canMessageUser(sender.id, receiverId, projectId);
+    if (!allowed && !["admin", "super_admin"].includes(sender.role)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const files = req.files as Express.Multer.File[] | undefined;
+    if (!files || files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
+    }
+
+    const uploaded = await Promise.allSettled(
+      files.map(async (file) => {
+        const result = await uploadToCloudinary(file.buffer, file.mimetype, {
+          folder: `panda-studio/messages/${sender.id}`,
+        });
+        return {
+          url: result.url,
+          fileName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+        };
+      }),
+    );
+
+    const attachments = uploaded
+      .filter((entry) => entry.status === "fulfilled")
+      .map(
+        (entry) =>
+          (
+            entry as PromiseFulfilledResult<{
+              url: string;
+              fileName: string;
+              mimeType: string;
+              size: number;
+            }>
+          ).value,
+      );
+
+    if (attachments.length === 0) {
+      return res.status(500).json({ message: "All uploads failed" });
+    }
+
+    return res.status(200).json({
+      message: "Attachments uploaded",
+      attachments,
+    });
   } catch (err) {
     return res.status(500).json({ message: "Server error", error: err });
   }

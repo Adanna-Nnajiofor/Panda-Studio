@@ -18,7 +18,6 @@ import {
   apiFetch,
   type ApiUser,
   type NormalizedAuthSession,
-  API_BASE_URL,
 } from "../lib/api";
 
 import { roleHomePath, type Role } from "../lib/roles";
@@ -26,8 +25,14 @@ import { roleHomePath, type Role } from "../lib/roles";
 export type Credentials = {
   email: string;
   password: string;
+  twoFactorCode?: string;
+  backupCode?: string;
   name?: string;
   role?: Role | string;
+};
+
+export type AuthFlowError = Error & {
+  requiresTwoFactor?: boolean;
 };
 
 export type AuthContextValue = {
@@ -109,12 +114,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({
           email: credentials.email,
           password: credentials.password,
+          twoFactorCode: credentials.twoFactorCode,
+          backupCode: credentials.backupCode,
           name: credentials.name,
           role: normalizeRole(credentials.role),
         }),
       });
 
       const payload = await response.json().catch(() => ({}));
+
+      if (
+        action === "login" &&
+        payload &&
+        typeof payload === "object" &&
+        (payload as Record<string, unknown>).requiresTwoFactor === true
+      ) {
+        const flowError = new Error(
+          "Two-factor code is required",
+        ) as AuthFlowError;
+        flowError.requiresTwoFactor = true;
+        throw flowError;
+      }
 
       if (!response.ok) {
         throw new Error(

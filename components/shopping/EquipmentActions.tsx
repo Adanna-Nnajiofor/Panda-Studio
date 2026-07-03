@@ -27,7 +27,7 @@ export default function EquipmentActions({
     "idle" | "loading" | "done"
   >("idle");
   const [error, setError] = useState<string | null>(null);
-  
+
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
 
@@ -57,22 +57,26 @@ export default function EquipmentActions({
     });
 
   const handleWishlist = () =>
-    requireAuth("You need to log in to save items to your wishlist.", async () => {
-      setWishlistState("loading");
-      setError(null);
-      try {
-        await addToWishlist(equipmentId, {
-          label: equipmentName,
-        });
-        setWishlistState("done");
-        window.setTimeout(() => setWishlistState("idle"), 1800);
-      } catch (err) {
-        setError(getErrorMessage(err, "Could not add to wishlist"));
-        setWishlistState("idle");
-      }
-    });
+    requireAuth(
+      "You need to log in to save items to your wishlist.",
+      async () => {
+        setWishlistState("loading");
+        setError(null);
+        try {
+          await addToWishlist(equipmentId, {
+            label: equipmentName,
+          });
+          setWishlistState("done");
+          window.setTimeout(() => setWishlistState("idle"), 1800);
+        } catch (err) {
+          setError(getErrorMessage(err, "Could not add to wishlist"));
+          setWishlistState("idle");
+        }
+      },
+    );
 
-  const btnClass = "border-2 border-black px-3 py-2 text-xs font-black uppercase tracking-[0.16em] disabled:opacity-50 transition-all active:scale-95";
+  const btnClass =
+    "border-2 border-black px-3 py-2 text-xs font-black uppercase tracking-[0.16em] disabled:opacity-50 transition-all active:scale-95";
 
   return (
     <>
@@ -103,10 +107,12 @@ export default function EquipmentActions({
                 : "Wishlist"}
           </button>
         </div>
-        {error ? <p className="text-xs text-red-700 font-bold">{error}</p> : null}
+        {error ? (
+          <p className="text-xs text-red-700 font-bold">{error}</p>
+        ) : null}
       </div>
 
-      <AuthActionModal 
+      <AuthActionModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         message={modalMessage}
