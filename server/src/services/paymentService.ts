@@ -58,16 +58,20 @@ export const initializePaystackPayment = async (
   amount: number,
   reference: string,
   metadata?: Record<string, any>,
+  callbackUrl?: string,
 ) => {
   try {
+    const payload: Record<string, unknown> = {
+      email,
+      amount: Math.round(amount * 100),
+      reference,
+      metadata,
+    };
+    if (callbackUrl) payload.callback_url = callbackUrl;
+
     const response = await axios.post(
       paystackUrl("/transaction/initialize"),
-      {
-        email,
-        amount: Math.round(amount * 100),
-        reference,
-        metadata,
-      },
+      payload,
       { headers: paystackHeaders() },
     );
 
@@ -178,9 +182,11 @@ export const initializeFlutterwavePayment = async (
   amount: number,
   reference: string,
   metadata?: Record<string, any>,
+  customRedirectUrl?: string,
 ) => {
   try {
     const redirectUrl =
+      customRedirectUrl ??
       process.env.FLUTTERWAVE_REDIRECT_URL ??
       `${process.env.CLIENT_ORIGIN ?? "http://localhost:3000"}/payments/verify`;
 

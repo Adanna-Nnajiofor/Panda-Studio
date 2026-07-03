@@ -164,6 +164,12 @@ export default function AdminPage() {
               Awards
             </Link>
             <Link
+              href="/admin/memberships"
+              className="inline-block border-2 border-black bg-white px-4 py-2 text-xs font-black uppercase"
+            >
+              Membership plans
+            </Link>
+            <Link
               href="/admin/settings"
               className="inline-block border-2 border-black bg-white px-4 py-2 text-xs font-black uppercase"
             >

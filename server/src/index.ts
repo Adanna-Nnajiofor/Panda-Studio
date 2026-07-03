@@ -48,6 +48,11 @@ import settingRoutes from "./routes/settingRoutes";
 import equipmentBookingRoutes from "./routes/equipmentBookingRoutes";
 import studioBookingRoutes from "./routes/studioBookingRoutes";
 import awardRoutes from "./routes/awardRoutes";
+import academyCourseRoutes from "./routes/academyCourseRoutes";
+import academyEnrollmentRoutes from "./routes/academyEnrollmentRoutes";
+import academyProgressRoutes from "./routes/academyProgressRoutes";
+import academyPaymentRoutes from "./routes/academyPaymentRoutes";
+import academyMembershipRoutes from "./routes/academyMembershipRoutes";
 
 import { listCrewDirectory } from "./controllers/crewDirectoryController";
 import { protect } from "./middleware/authMiddleware";
@@ -157,6 +162,11 @@ app.use("/api/settings", settingRoutes);
 app.use("/api/equipment-bookings", equipmentBookingRoutes);
 app.use("/api/studio-bookings", studioBookingRoutes);
 app.use("/api/awards", awardRoutes);
+app.use("/api/academy/courses", academyCourseRoutes);
+app.use("/api/academy/enrollments", academyEnrollmentRoutes);
+app.use("/api/academy/progress", academyProgressRoutes);
+app.use("/api/academy/payments", academyPaymentRoutes);
+app.use("/api/academy/memberships", academyMembershipRoutes);
 
 // Crew directory
 app.get("/api/users/crew", protect(), listCrewDirectory);

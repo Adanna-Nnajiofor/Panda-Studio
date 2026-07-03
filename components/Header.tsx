@@ -10,6 +10,7 @@ import NotificationBell from "./NotificationBell";
 
 const navigation = [
   { href: "/showcase", label: "Showcase" },
+  { href: "/academy", label: "Academy" },
   { href: "/services", label: "Services" },
   { href: "/equipment", label: "Equipment" },
   { href: "/about", label: "About" },
@@ -71,18 +72,6 @@ export default function Header() {
           </div>
         </Link>
 
-        <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 px-2 lg:flex">
-          {navigation.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={navItemClass(item.href)}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
         <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
           <Link
             href="/search"
@@ -93,30 +82,6 @@ export default function Header() {
           </Link>
 
           <div className="hidden items-center gap-2 lg:flex">
-            {isAuthenticated ? (
-              <>
-                <Link
-                  href="/dashboard"
-                  className={
-                    navItemClass("/dashboard") +
-                    " border border-slate-200 bg-white text-slate-900"
-                  }
-                >
-                  Workspace
-                </Link>
-                {(user?.role === "admin" || user?.role === "super_admin") && (
-                  <Link
-                    href="/admin"
-                    className={
-                      navItemClass("/admin") +
-                      " border border-slate-200 bg-white text-slate-900"
-                    }
-                  >
-                    Admin
-                  </Link>
-                )}
-              </>
-            ) : null}
             <Link
               href="/search"
               className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-300 hover:bg-slate-50"
@@ -137,13 +102,13 @@ export default function Header() {
               <>
                 <Link
                   href="/login"
-                  className="rounded-full px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  className="rounded-full px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 >
                   Login
                 </Link>
                 <Link
                   href="/register"
-                  className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-900 transition hover:border-slate-300"
+                  className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:border-slate-300"
                 >
                   Register
                 </Link>
@@ -165,8 +130,49 @@ export default function Header() {
         </div>
       </div>
 
+      <div className="hidden border-t border-slate-200 lg:block">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
+          <nav className="flex min-w-0 flex-wrap items-center gap-1">
+            {navigation.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={navItemClass(item.href)}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          {isAuthenticated ? (
+            <div className="flex shrink-0 items-center gap-2">
+              <Link
+                href="/dashboard"
+                className={
+                  navItemClass("/dashboard") +
+                  " border border-slate-200 bg-white text-slate-900"
+                }
+              >
+                Workspace
+              </Link>
+              {(user?.role === "admin" || user?.role === "super_admin") && (
+                <Link
+                  href="/admin"
+                  className={
+                    navItemClass("/admin") +
+                    " border border-slate-200 bg-white text-slate-900"
+                  }
+                >
+                  Admin
+                </Link>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
       {menuOpen ? (
-        <section className="absolute inset-x-0 top-full z-[100] border-t border-slate-200 bg-white shadow-2xl lg:hidden">
+        <section className="absolute inset-x-0 top-full z-100 border-t border-slate-200 bg-white shadow-2xl lg:hidden">
           <div className="mx-auto flex max-h-[calc(100vh-4rem)] max-w-6xl flex-col gap-4 overflow-y-auto px-4 pb-5 pt-3 sm:px-6">
             <div className="grid grid-cols-2 gap-3">
               <Link

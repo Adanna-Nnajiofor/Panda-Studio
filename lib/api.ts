@@ -12,11 +12,19 @@ function readApiBaseEnv(): string | undefined {
 function normalizeApiBase(base: string | undefined): string {
   const trimmed = base?.replace(/\/$/, "");
   if (!trimmed) return "";
+  if (trimmed === "/api") return "/api";
+  if (trimmed === "/api/backend") return "/api/backend";
   return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
 }
 
 function resolveApiBaseUrl(): string {
   if (typeof window !== "undefined") {
+    const configured = normalizeApiBase(readApiBaseEnv());
+    if (configured) {
+      if (configured === "/api") return "/api/backend";
+      return configured;
+    }
+
     // In the browser, we use a relative path to leverage Next.js rewrites.
     // This resolves CORS issues and ensures consistency with the backend origin.
     return "/api/backend";

@@ -29,6 +29,10 @@ const nextConfig: NextConfig = {
 
     return [
       {
+        source: "/api/academy/:path*",
+        destination: `${backendRoot}/api/academy/:path*`,
+      },
+      {
         source: "/api/backend/:path*",
         destination: `${backendRoot}/api/:path*`,
       },

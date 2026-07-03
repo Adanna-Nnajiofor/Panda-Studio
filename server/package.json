@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "seed:studio-rooms": "ts-node src/scripts/seedStudioRooms.ts",
+    "seed:academy": "ts-node src/scripts/seedAcademyContent.ts",
     "test": "pnpm build && node --test dist/tests/**/*.test.js"
   },
   "keywords": [],
